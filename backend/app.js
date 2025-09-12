@@ -1,25 +1,24 @@
 import express from "express";
 import bodyParser from "body-parser";
 import dotenv from "dotenv";
+import { makeCall } from "./services/twilioService.js";
+import brevoRouter from "./services/brevoService.js";
 
-import { makeCall } from "./services/twilioService.js";   // Twilio helper
-import brevoRouter from "./services/brevoService.js";     // Brevo webhook handler
-
-// Load environment variables from .env
+// Load environment variables from .env (local dev only)
 dotenv.config();
 
 const app = express();
 app.use(bodyParser.json());
 
-// Mount Brevo routes under /brevo
+// Mount the Brevo webhook router
 app.use("/brevo", brevoRouter);
 
-// Simple health check (useful to test ngrok URL in a browser)
+// Simple health-check route
 app.get("/", (req, res) => {
-  res.send("✅ AI Sales Agent Backend is Running with Twilio + Brevo");
+  res.send("AI Sales Agent Backend Running ✅ with Twilio");
 });
 
-// Route to manually trigger a test call
+// Manual call trigger (optional)
 app.post("/make-call", async (req, res) => {
   try {
     const { phoneNumber, callType } = req.body;
@@ -38,9 +37,9 @@ app.post("/make-call", async (req, res) => {
   }
 });
 
-// Start the server
+// ---- Start server ----
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+// Listen on all network interfaces so Render can reach it
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Server running and listening on port ${PORT}`);
 });
-
