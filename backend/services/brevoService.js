@@ -1,31 +1,31 @@
 import express from "express";
-import { makeCall } from "./twilioService.js";   // adjust path only if twilioService.js is in a different folder
+import { makeCall } from "./twilioService.js";   // adjust path if needed
 
 const router = express.Router();
 
 router.post("/webhook", async (req, res) => {
-  // Log everything so you can still see the full payload in Render
   console.log("=== RAW BREVO WEBHOOK BODY START ===");
   console.dir(req.body, { depth: null });
   console.log("=== RAW BREVO WEBHOOK BODY END ===");
 
   try {
-    // Always ACK quickly so Brevo doesn’t retry
     res.status(200).send("ok");
 
-    // Pull the contact object if it exists
-    const contact = req.body?.contact || {};
+    // Brevo sends attributes at the top level in this payload
+    const body = req.body || {};
+    const contact = body.contact || {};
 
-    // Find a phone number (Brevo can store it in several places)
+    // Look for a phone number in every likely spot, including attributes.SMS
     const phone =
       contact.attributes?.PHONE ||
       contact.attributes?.Mobile ||
       contact.phone ||
-      req.body.phone ||
+      body.attributes?.SMS ||   // 👈 added this line
+      body.phone ||
       null;
 
     if (!phone) {
-      console.warn("⚠️ No phone number found in Brevo contact.");
+      console.warn("⚠️ No phone number found in Brevo payload.");
       return;
     }
 
