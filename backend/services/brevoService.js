@@ -1,10 +1,10 @@
 import express from "express";
-import { makeCall } from "./twilioService.js";   // adjust path only if your twilioService.js is in a different folder
+import { makeCall } from "./twilioService.js";   // adjust path only if twilioService.js is in a different folder
 
 const router = express.Router();
 
 router.post("/webhook", async (req, res) => {
-  // === TOP-LEVEL LOG TO SEE THE ENTIRE PAYLOAD ===
+  // Log everything so you can still see the full payload in Render
   console.log("=== RAW BREVO WEBHOOK BODY START ===");
   console.dir(req.body, { depth: null });
   console.log("=== RAW BREVO WEBHOOK BODY END ===");
@@ -16,26 +16,7 @@ router.post("/webhook", async (req, res) => {
     // Pull the contact object if it exists
     const contact = req.body?.contact || {};
 
-    // ---- TEMPORARY: very loose check so we can still trigger calls ----
-    // We will tighten this once we know the exact property Brevo sends.
-    // This simply logs whatever lists we can find.
-    const possibleLists =
-      contact.listNames ||
-      contact.listIds ||
-      req.body.listNames ||
-      req.body.listIds ||
-      [];
-
-    console.log("Possible list data from Brevo:", possibleLists);
-
-    // Replace this with a proper check after you see the actual payload.
-    // For now, if *any* list info exists, attempt a call.
-    if (!possibleLists || (Array.isArray(possibleLists) && possibleLists.length === 0)) {
-      console.log("⚠️ No list information found — skipping call for now.");
-      return;
-    }
-
-    // Find a phone number (Brevo can put it in several places)
+    // Find a phone number (Brevo can store it in several places)
     const phone =
       contact.attributes?.PHONE ||
       contact.attributes?.Mobile ||
