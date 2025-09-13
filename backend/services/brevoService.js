@@ -1,27 +1,22 @@
 import express from "express";
-import { makeCall } from "./twilioService.js";
+import { makeCall } from "../services/twilioService.js"; // adjust path if needed
 
 const router = express.Router();
 
-// This is the endpoint Brevo will call
 router.post("/webhook", async (req, res) => {
   try {
     console.log("📩 Brevo webhook received:", JSON.stringify(req.body, null, 2));
-
-    // Always ACK quickly so Brevo doesn't retry
     res.status(200).send("ok");
 
-    // Extract contact + tags
     const contact = req.body?.contact || {};
-    const tags = (contact.tags || []).map(t => t.toLowerCase());
+    // If your payload uses listIds instead of listNames, swap this line accordingly.
+    const lists = (contact.listNames || []).map(l => l.toLowerCase());
 
-    // Only trigger a call if tag includes "interested"
-    if (!tags.includes("interested")) {
-      console.log("Contact is missing 'interested' tag — skipping call.");
+    if (!lists.includes("interested")) {
+      console.log("Contact is not in 'interested' list — skipping call.");
       return;
     }
 
-    // Find a phone number (Brevo stores it under attributes or contact fields)
     const phone =
       contact.attributes?.PHONE ||
       contact.attributes?.Mobile ||
@@ -34,8 +29,6 @@ router.post("/webhook", async (req, res) => {
     }
 
     console.log(`📞 Triggering Twilio call to ${phone} using GPT script`);
-
-    // Use your existing Twilio+GPT makeCall function
     await makeCall(phone, "cold-call");
 
   } catch (err) {
