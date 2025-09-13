@@ -4,9 +4,9 @@ import { makeCall } from "../services/twilioService.js"; // adjust path if neede
 const router = express.Router();
 
 router.post("/webhook", async (req, res) => {
-  try {
-  console.log("FULL BREVO BODY ===>", JSON.stringify(req.body, null, 2));
-  console.log("📩 Brevo webhook received:", JSON.stringify(req.body, null, 2));
+console.log("FULL BREVO BODY ===>", JSON.stringify(req.body, null, 2));
+ try {  
+ console.log("📩 Brevo webhook received:", JSON.stringify(req.body, null, 2));
     res.status(200).send("ok");
 
     const contact = req.body?.contact || {};
