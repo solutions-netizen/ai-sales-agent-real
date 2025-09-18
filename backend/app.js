@@ -19,8 +19,10 @@ const VoiceResponse = twilioPkg.twiml.VoiceResponse;
 // === Triggered by Zapier ===
 app.post("/brevo/webhook", async (req, res) => {
   try {
-    const phone = req.body?.attributes?.SMS;
-    const first = req.body?.attributes?.FIRSTNAME || "Friend";
+    const attrs = req.body?.attributes || {};
+    const phone = attrs.SMS;
+    // Only use FIRSTNAME (or “Friend”) for greeting
+    const first = attrs.FIRSTNAME?.trim() || "Friend";
 
     if (!phone) {
       console.warn("⚠️ No phone number found in Brevo payload.");
@@ -30,12 +32,12 @@ app.post("/brevo/webhook", async (req, res) => {
     const call = await client.calls.create({
       to: phone,
       from: TWILIO_FROM_NUMBER,
-      // Pass first name in the query string so Twilio can greet properly
-      url: `${BASE_URL}/twiml/outbound?name=${encodeURIComponent(first)}`,
+      // Pass ONLY the first name in the query string
+      url: `${BASE_URL}/twiml/outbound?first=${encodeURIComponent(first)}`,
       record: false
     });
 
-    console.log(`📞 Triggered Twilio call to ${phone} for ${first} | SID: ${call.sid}`);
+    console.log(`📞 Triggered Twilio call to ${phone} for first name: ${first}`);
     res.status(200).send({ status: "ok" });
   } catch (err) {
     console.error("❌ Error in /brevo/webhook:", err);
@@ -45,8 +47,8 @@ app.post("/brevo/webhook", async (req, res) => {
 
 // === Initial Call Script ===
 app.post("/twiml/outbound", (req, res) => {
-  // Default to “Friend” if no name provided
-  const name = req.query.name || "Friend";
+  // ONLY read the first name, never the phone
+  const name = req.query.first || "Friend";
   const twiml = new VoiceResponse();
 
   const gather = twiml.gather({
@@ -78,9 +80,8 @@ app.post("/twiml/gather", (req, res) => {
   } else if (digit === "2") {
     twiml.say("We will reach out to reschedule. Thank you.");
   } else if (digit === "3") {
-    // Example: connect to a live person or voicemail
     twiml.say("Please hold while we connect you.");
-    twiml.dial("+1YOUR_PHONE_NUMBER_HERE");
+    twiml.dial("+1YOUR_PHONE_NUMBER_HERE"); // replace with your number if desired
   } else {
     twiml.say("Invalid input. Goodbye.");
   }
