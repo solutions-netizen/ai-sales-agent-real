@@ -1,4 +1,3 @@
-// ES module syntax
 import express from "express";
 import bodyParser from "body-parser";
 import twilioPkg from "twilio";
@@ -6,10 +5,16 @@ import twilioPkg from "twilio";
 const app = express();
 app.use(bodyParser.json());
 
-const { PORT = 5000, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN,
-        TWILIO_FROM_NUMBER, BASE_URL } = process.env;
+const {
+  PORT = 5000,
+  TWILIO_ACCOUNT_SID,
+  TWILIO_AUTH_TOKEN,
+  TWILIO_FROM_NUMBER,
+  BASE_URL
+} = process.env;
 
-const client = twilioPkg.Twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+// ✅ Correct Twilio client for ES modules
+const client = twilioPkg(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
 
 
 // ===== Helper Functions =====
