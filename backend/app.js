@@ -16,13 +16,9 @@ const {
 const client = twilioPkg(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
 const VoiceResponse = twilioPkg.twiml.VoiceResponse;
 
-// --- Brevo/Zapier webhook: receive lead and trigger call ---
+// === Triggered by Zapier ===
 app.post("/brevo/webhook", async (req, res) => {
   try {
-    console.log("=== RAW BREVO WEBHOOK BODY START ===");
-    console.log(JSON.stringify(req.body, null, 2));
-    console.log("=== RAW BREVO WEBHOOK BODY END ===");
-
     const phone = req.body?.attributes?.SMS;
     const first = req.body?.attributes?.FIRSTNAME || "Friend";
 
@@ -34,11 +30,12 @@ app.post("/brevo/webhook", async (req, res) => {
     const call = await client.calls.create({
       to: phone,
       from: TWILIO_FROM_NUMBER,
+      // Pass first name in the query string so Twilio can greet properly
       url: `${BASE_URL}/twiml/outbound?name=${encodeURIComponent(first)}`,
-      record: false   // set to true if you want full call recordings
+      record: false
     });
 
-    console.log(`📞 Triggered Twilio call to ${phone} | SID: ${call.sid}`);
+    console.log(`📞 Triggered Twilio call to ${phone} for ${first} | SID: ${call.sid}`);
     res.status(200).send({ status: "ok" });
   } catch (err) {
     console.error("❌ Error in /brevo/webhook:", err);
@@ -46,12 +43,12 @@ app.post("/brevo/webhook", async (req, res) => {
   }
 });
 
-// --- TwiML route: what Twilio says during the call ---
+// === Initial Call Script ===
 app.post("/twiml/outbound", (req, res) => {
+  // Default to “Friend” if no name provided
   const name = req.query.name || "Friend";
   const twiml = new VoiceResponse();
 
-  // Greeting + Gather
   const gather = twiml.gather({
     numDigits: 1,
     action: "/twiml/gather",
@@ -59,21 +56,19 @@ app.post("/twiml/outbound", (req, res) => {
     timeout: 5
   });
   gather.say(
-    `Hello ${name}, this is Living Life Resources calling. 
-     Press 1 to confirm your appointment. 
-     Press 2 to reschedule.`
+    `Hello ${name}, this is Living Life Resources.
+     Press 1 to confirm your appointment.
+     Press 2 to reschedule.
+     Press 3 to speak with a representative.`
   );
 
-  // If no key pressed
-  twiml.say(
-    "We did not receive a response. Please call us back at your convenience. Goodbye."
-  );
+  twiml.say("We did not receive a response. Goodbye.");
 
   res.type("text/xml");
   res.send(twiml.toString());
 });
 
-// --- TwiML branch handler ---
+// === Branch Logic ===
 app.post("/twiml/gather", (req, res) => {
   const digit = req.body.Digits;
   const twiml = new VoiceResponse();
@@ -82,6 +77,10 @@ app.post("/twiml/gather", (req, res) => {
     twiml.say("Thank you. Your appointment is confirmed.");
   } else if (digit === "2") {
     twiml.say("We will reach out to reschedule. Thank you.");
+  } else if (digit === "3") {
+    // Example: connect to a live person or voicemail
+    twiml.say("Please hold while we connect you.");
+    twiml.dial("+1YOUR_PHONE_NUMBER_HERE");
   } else {
     twiml.say("Invalid input. Goodbye.");
   }
@@ -90,7 +89,7 @@ app.post("/twiml/gather", (req, res) => {
   res.send(twiml.toString());
 });
 
-// --- Start server ---
+// === Start Server ===
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
