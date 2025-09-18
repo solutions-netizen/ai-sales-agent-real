@@ -1,22 +1,16 @@
-// app.js
-const express = require("express");
-const bodyParser = require("body-parser");
-const twilio = require("twilio");
+// ES module syntax
+import express from "express";
+import bodyParser from "body-parser";
+import twilioPkg from "twilio";
 
 const app = express();
 app.use(bodyParser.json());
 
-// ===== Environment Variables =====
-// Make sure these are set in Render → Environment
-const {
-  PORT = 5000,
-  TWILIO_ACCOUNT_SID,
-  TWILIO_AUTH_TOKEN,
-  TWILIO_FROM_NUMBER,   // your Twilio number in +E.164 format
-  BASE_URL              // e.g. https://ai-sales-agent-real.onrender.com
-} = process.env;
+const { PORT = 5000, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN,
+        TWILIO_FROM_NUMBER, BASE_URL } = process.env;
 
-const client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+const client = twilioPkg.Twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+
 
 // ===== Helper Functions =====
 function logBlock(title, data) {
