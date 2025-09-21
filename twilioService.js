@@ -3,7 +3,9 @@ import { callScripts } from "./scripts.js";
 import twilio from "twilio";
 import dotenv from "dotenv";
 
-// Load env values
+// ----------------------------------------------------
+//  Load environment variables
+// ----------------------------------------------------
 dotenv.config();
 
 console.log("Twilio Service starting with:");
@@ -16,19 +18,32 @@ const client = twilio(
   process.env.TWILIO_AUTH_TOKEN
 );
 
-export async function makeCall(toNumber, callType) {
+// ----------------------------------------------------
+//  makeCall
+//  Places an outbound call that greets the contact
+//  by FIRST NAME ONLY—never speaks a phone number.
+// ----------------------------------------------------
+export async function makeCall(toNumber, callType, "Andrea") {
   try {
-    // Get the correct script or fallback
+    // Clean the first name: letters, spaces, apostrophes, hyphens only
+    const safeName = (firstName || 'friend')
+      .replace(/[^a-zA-Z\s'-]/g, '')
+      .trim();
+
+    // Build a GPT prompt that politely greets by first name only
     const prompt =
       callScripts[callType] ||
-      "Introduce yourself as a sales agent in a polite and professional way.";
+      `Introduce yourself as a sales agent in a polite and professional way and greet ${safeName} by first name only. Do NOT include any phone numbers.`;
 
     console.log("Using prompt for callType:", callType);
     console.log("Prompt text:", prompt);
 
     // Ask GPT for the spoken script
-    const aiReply = await getAIResponse(prompt);
-    console.log("GPT returned reply:", aiReply);
+    const aiReplyRaw = await getAIResponse(prompt);
+    console.log("GPT returned reply:", aiReplyRaw);
+
+    // Extra safety: strip any digits that might sneak through
+    const aiReply = aiReplyRaw.replace(/\d+/g, '').trim();
 
     // Place the call with Twilio
     const call = await client.calls.create({
