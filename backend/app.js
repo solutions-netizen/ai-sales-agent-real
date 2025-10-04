@@ -1,97 +1,60 @@
+//-----------------------------------------------------
+// backend/app.js  (clean: no hard-coded “Press 1” TwiML)
+//-----------------------------------------------------
 import express from "express";
 import bodyParser from "body-parser";
-import twilioPkg from "twilio";
+import dotenv from "dotenv";
+import { makeCall } from "../twilioService.js"; // note: ../ because app.js is in /backend
+
+dotenv.config();
 
 const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-const {
-  TWILIO_ACCOUNT_SID,
-  TWILIO_AUTH_TOKEN,
-  TWILIO_FROM_NUMBER,
-  BASE_URL
-} = process.env;
+const PORT = process.env.PORT || 5000;
 
-const client = twilioPkg(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
-const VoiceResponse = twilioPkg.twiml.VoiceResponse;
+// Health check
+app.get("/", (req, res) => {
+  res.send("✅ AI Sales Agent backend is running");
+});
 
-// === Triggered by Zapier ===
+// Brevo/Zapier webhook -> places an outbound call via makeCall()
 app.post("/brevo/webhook", async (req, res) => {
   try {
-    const attrs = req.body?.attributes || {};
-    const phone = attrs.SMS;
-    // Only use FIRSTNAME (or “Friend”) for greeting
-    const first = attrs.FIRSTNAME?.trim() || "Friend";
+    // Try all common Brevo/Zapier shapes
+    const body = req.body || {};
+    const contact = body.contact || {};
+    const attrs =
+      body.attributes ||
+      contact.attributes ||
+      {};
+
+    const phone =
+      attrs.SMS ||
+      attrs.PHONE ||
+      attrs.Mobile ||
+      body.phone ||
+      contact.phone ||
+      null;
+
+    const first = (attrs.FIRSTNAME || attrs.FirstName || "Friend").toString().trim();
 
     if (!phone) {
-      console.warn("⚠️ No phone number found in Brevo payload.");
+      console.warn("⚠️ No phone number found in payload.");
       return res.status(400).send("Missing phone number");
     }
 
-    const call = await client.calls.create({
-      to: phone,
-      from: TWILIO_FROM_NUMBER,
-      // Pass ONLY the first name in the query string
-      url: `${BASE_URL}/twiml/outbound?first=${encodeURIComponent(first)}`,
-      record: false
-    });
+    console.log(`📞 Triggering Twilio call to ${phone} for first name: ${first}`);
+    await makeCall(phone, "cold-call", first);
 
-    console.log(`📞 Triggered Twilio call to ${phone} for first name: ${first}`);
-    res.status(200).send({ status: "ok" });
+    res.status(200).send("ok");
   } catch (err) {
     console.error("❌ Error in /brevo/webhook:", err);
     res.status(500).send("Server error");
   }
 });
 
-// === Initial Call Script ===
-app.post("/twiml/outbound", (req, res) => {
-  // ONLY read the first name, never the phone
-  const name = req.query.first || "Friend";
-  const twiml = new VoiceResponse();
-
-  const gather = twiml.gather({
-    numDigits: 1,
-    action: "/twiml/gather",
-    method: "POST",
-    timeout: 5
-  });
-  gather.say(
-    `Hello ${name}, this is Living Life Resources.
-     Press 1 to confirm your appointment.
-     Press 2 to reschedule.
-     Press 3 to speak with a representative.`
-  );
-
-  twiml.say("We did not receive a response. Goodbye.");
-
-  res.type("text/xml");
-  res.send(twiml.toString());
-});
-
-// === Branch Logic ===
-app.post("/twiml/gather", (req, res) => {
-  const digit = req.body.Digits;
-  const twiml = new VoiceResponse();
-
-  if (digit === "1") {
-    twiml.say("Thank you. Your appointment is confirmed.");
-  } else if (digit === "2") {
-    twiml.say("We will reach out to reschedule. Thank you.");
-  } else if (digit === "3") {
-    twiml.say("Please hold while we connect you.");
-    twiml.dial("+1YOUR_PHONE_NUMBER_HERE"); // replace with your number if desired
-  } else {
-    twiml.say("Invalid input. Goodbye.");
-  }
-
-  res.type("text/xml");
-  res.send(twiml.toString());
-});
-
-// === Start Server ===
-const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
