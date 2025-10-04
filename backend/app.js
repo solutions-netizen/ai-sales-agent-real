@@ -1,10 +1,10 @@
 //-----------------------------------------------------
-// backend/app.js  (clean: no hard-coded “Press 1” TwiML)
+// backend/app.js  (clean version - NO "Press 1" hardcode)
 //-----------------------------------------------------
 import express from "express";
 import bodyParser from "body-parser";
 import dotenv from "dotenv";
-import { makeCall } from "../twilioService.js"; // note: ../ because app.js is in /backend
+import { makeCall } from "../twilioService.js"; // notice the path
 
 dotenv.config();
 
@@ -19,16 +19,12 @@ app.get("/", (req, res) => {
   res.send("✅ AI Sales Agent backend is running");
 });
 
-// Brevo/Zapier webhook -> places an outbound call via makeCall()
+// Handles outbound call requests from Brevo/Zapier webhook
 app.post("/brevo/webhook", async (req, res) => {
   try {
-    // Try all common Brevo/Zapier shapes
     const body = req.body || {};
     const contact = body.contact || {};
-    const attrs =
-      body.attributes ||
-      contact.attributes ||
-      {};
+    const attrs = body.attributes || contact.attributes || {};
 
     const phone =
       attrs.SMS ||
@@ -41,7 +37,7 @@ app.post("/brevo/webhook", async (req, res) => {
     const first = (attrs.FIRSTNAME || attrs.FirstName || "Friend").toString().trim();
 
     if (!phone) {
-      console.warn("⚠️ No phone number found in payload.");
+      console.warn("⚠️ No phone number found in payload");
       return res.status(400).send("Missing phone number");
     }
 
