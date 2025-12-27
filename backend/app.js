@@ -83,7 +83,8 @@ app.post("/zapier-call", async (req, res) => {
     });
 
     // Trigger Twilio call – reuse your existing makeCall helper
-    await makeCall(phoneNumber, "hot-lead", firstName);
+    // await makeCall(phoneNumber, "hot-lead", firstName);
+
 
     return res
       .status(200)
