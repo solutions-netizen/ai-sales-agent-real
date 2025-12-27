@@ -50,6 +50,51 @@ app.post("/brevo/webhook", async (req, res) => {
     res.status(500).send("Server error");
   }
 });
+// Handles outbound call requests from Zapier (Google Sheets → Zapier → backend)
+app.post("/zapier-call", async (req, res) => {
+  try {
+    const {
+      phoneNumber,
+      name,
+      email,
+      readinessLevel,
+      score,
+      followUpAction,
+      notes,
+    } = req.body || {};
+
+    if (!phoneNumber) {
+      console.warn("No phone number found in Zapier payload");
+      return res
+        .status(400)
+        .json({ ok: false, error: "Missing phone number in payload" });
+    }
+
+    const firstName = (name || "friend").toString().split(" ")[0].trim();
+
+    console.log("📞 New lead from Zapier:", {
+      phoneNumber,
+      name,
+      email,
+      readinessLevel,
+      score,
+      followUpAction,
+      notes,
+    });
+
+    // Trigger Twilio call – reuse your existing makeCall helper
+    await makeCall(phoneNumber, "hot-lead", firstName);
+
+    return res
+      .status(200)
+      .json({ ok: true, message: "Call initiated from Zapier" });
+  } catch (err) {
+    console.error("Error in /zapier-call:", err);
+    return res
+      .status(500)
+      .json({ ok: false, error: "Internal server error in /zapier-call" });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
