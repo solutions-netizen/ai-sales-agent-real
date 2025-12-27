@@ -1,32 +1,65 @@
-export async function makeCall(toNumber, callType, firstName = '') {
+// twilioService.js
+// Clean Twilio helper with built-in callScripts
+
+import twilio from "twilio";
+
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const callerId = process.env.TWILIO_CALLER_ID; // Your Twilio phone number
+
+if (!accountSid || !authToken || !callerId) {
+  console.warn(
+    "⚠️ Twilio env vars missing. Check TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_CALLER_ID."
+  );
+}
+
+const client = twilio(accountSid, authToken);
+
+// Simple scripts the caller can use.
+// You can tweak these later to match your exact wording.
+const callScripts = {
+  "hot-lead": (firstName = "friend") =>
+    `Hi ${firstName}, this is the AI assistant for Andrea Edwards with Living Life Resources. You recently requested a quick financial checkup. I'm calling to help you get clarity, guidance, and a simple plan. Is now a good time to talk?`,
+
+  "cold-call": (firstName = "friend") =>
+    `Hi ${firstName}, this is the AI assistant for Andrea Edwards with Living Life Resources, reaching out with some helpful information about protecting and growing your money.`
+};
+
+/**
+ * Places a call using Twilio and reads out a simple script.
+ *
+ * @param {string} phoneNumber - The destination phone number (in E.164 format like +12025550123)
+ * @param {string} scriptKey - Which script to use ("hot-lead", "cold-call", etc.)
+ * @param {string} firstName - First name to personalize the script
+ */
+export async function makeCall(
+  phoneNumber,
+  scriptKey = "hot-lead",
+  firstName = "friend"
+) {
+  const scriptFn = callScripts[scriptKey] || callScripts["hot-lead"];
+  const scriptText =
+    typeof scriptFn === "function" ? scriptFn(firstName) : scriptFn;
+
   try {
-    // --- Clean the first name to avoid any numbers or symbols ---
-    const safeName = (firstName || 'friend')
-      .replace(/[^a-zA-Z\s'-]/g, '')
-      .trim();
+    console.log(
+      "📞 Placing Twilio call to:",
+      phoneNumber,
+      "using script:",
+      scriptKey
+    );
 
-    // --- Build a GPT prompt that NEVER includes a phone number ---
-    const prompt =
-      callScripts[callType] ||
-      `Introduce yourself as a sales agent in a polite and professional way and greet ${safeName} by first name only. Do NOT include any phone numbers.`;
-
-    console.log("Using prompt for callType:", callType);
-    console.log("Prompt text:", prompt);
-
-    // --- TEMPORARY TEST: hard-code the greeting to rule out GPT ---
-const aiReply = "Hello friend. This is a test message.";
-
-    // --- Place the call with Twilio ---
     const call = await client.calls.create({
-      twiml: `<Response><Say voice="alice">${aiReply}</Say></Response>`,
-      to: toNumber,
-      from: process.env.TWILIO_PHONE_NUMBER,
+      to: phoneNumber,
+      from: callerId,
+      // Simple TwiML that reads your script out loud
+      twiml: `<Response><Say>${scriptText}</Say></Response>`
     });
 
-    console.log("Twilio API response:", call);
-    return call;
-  } catch (error) {
-    console.error("Twilio call error:", error);
-    throw error;
+    console.log("✅ Twilio call created:", call.sid);
+    return call.sid;
+  } catch (err) {
+    console.error("Twilio call error in makeCall:", err);
+    throw err;
   }
 }
