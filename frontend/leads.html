@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>All Leads — InsureFlow AI</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+  <style>
+    .filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; align-items: flex-end; }
+    .filters select, .filters input { height: 36px; font-size: 13px; padding: 0 10px; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .detail-row { padding: 6px 0; border-bottom: 1px solid var(--border); }
+    .detail-key { font-size: 11px; color: var(--text-light); font-weight: 600; text-transform: uppercase; }
+    .detail-val { font-size: 13px; color: var(--text); font-weight: 500; }
+    .touch-list { display: flex; flex-direction: column; gap: 0; max-height: 240px; overflow-y: auto; }
+    .touch-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  </style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><span class="shield">🛡️</span><span>InsureFlow AI</span></div>
+    <div class="tagline">Life Insurance Platform</div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+    <a class="nav-item" data-page="dashboard" href="/"><span class="icon">📊</span><span>Dashboard</span></a>
+    <a class="nav-item" data-page="pipeline" href="/pipeline.html"><span class="icon">🔄</span><span>Pipeline</span></a>
+    <a class="nav-item active" data-page="leads" href="/leads.html"><span class="icon">👥</span><span>All Leads</span></a>
+    <div class="nav-section-label">Automation</div>
+    <a class="nav-item" data-page="referrals" href="/referrals.html"><span class="icon">🤝</span><span>Referrals</span></a>
+    <a class="nav-item" data-page="campaigns" href="/campaigns.html"><span class="icon">📣</span><span>Campaigns</span></a>
+    <div class="nav-section-label">Tools</div>
+    <a class="nav-item" data-page="capture" href="/capture.html" target="_blank"><span class="icon">📋</span><span>Lead Capture Page</span></a>
+  </div>
+  <div class="sidebar-footer">
+    <div class="agent-info">
+      <div class="agent-avatar" id="agent-avatar">A</div>
+      <div><div class="agent-name" id="agent-name-display">Agent</div><div class="agent-role">Licensed Insurance Agent</div></div>
+    </div>
+  </div>
+</nav>
+
+<div class="main-content">
+  <div class="topbar">
+    <h1>👥 All Leads</h1>
+    <div class="topbar-actions">
+      <button class="btn btn-outline btn-sm" onclick="loadLeads()">↻ Refresh</button>
+      <a href="/capture.html" target="_blank" class="btn btn-accent btn-sm">+ New Lead</a>
+    </div>
+  </div>
+
+  <div class="page-body">
+    <div class="filters">
+      <div class="form-group">
+        <label>Stage</label>
+        <select id="filter-stage" onchange="loadLeads()">
+          <option value="">All Stages</option>
+          <option>new</option><option>contacted</option><option>quoted</option>
+          <option>applied</option><option>placed</option><option>lost</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Product</label>
+        <select id="filter-product" onchange="loadLeads()">
+          <option value="">All Products</option>
+          <option value="term-life">Term Life</option>
+          <option value="whole-life">Whole Life</option>
+          <option value="iul">IUL</option>
+          <option value="final-expense">Final Expense</option>
+          <option value="mortgage-protection">Mortgage Protection</option>
+          <option value="annuity">Annuity</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Search</label>
+        <input type="text" id="filter-search" placeholder="Name, phone, email…" oninput="filterTable()" />
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body" style="padding:0">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Product</th>
+                <th>Stage</th>
+                <th>AI Score</th>
+                <th>Age / Health</th>
+                <th>Coverage</th>
+                <th>Source</th>
+                <th>Added</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="leads-body">
+              <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-light)">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Lead Detail Modal -->
+<div class="modal-overlay hidden" id="lead-modal">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <h3 id="modal-title">Lead Details</h3>
+      <button class="close-btn" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body">Loading…</div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Close</button>
+      <button class="btn btn-primary" id="modal-call-btn">📞 AI Call</button>
+      <button class="btn btn-accent" id="modal-sms-btn">💬 Send SMS</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="/js/common.js"></script>
+<script>
+  let allLeads = [];
+
+  document.getElementById("agent-name-display").textContent =
+    (localStorage.getItem("agentName") || "Agent").split(" ")[0];
+  document.getElementById("agent-avatar").textContent =
+    (localStorage.getItem("agentName") || "A")[0];
+
+  async function loadLeads() {
+    const stage   = document.getElementById("filter-stage").value;
+    const product = document.getElementById("filter-product").value;
+    let url = "/leads?limit=500";
+    if (stage)   url += `&stage=${stage}`;
+    if (product) url += `&product=${product}`;
+
+    try {
+      const { leads } = await api("GET", url);
+      allLeads = leads;
+      filterTable();
+    } catch (err) {
+      toast("Failed to load leads: " + err.message, "error");
+    }
+  }
+
+  function filterTable() {
+    const q = (document.getElementById("filter-search").value || "").toLowerCase();
+    const filtered = allLeads.filter(l => {
+      if (!q) return true;
+      return (l.first_name + " " + (l.last_name||"") + " " + (l.phone||"") + " " + (l.email||""))
+        .toLowerCase().includes(q);
+    });
+    renderTable(filtered);
+  }
+
+  function renderTable(leads) {
+    document.getElementById("leads-body").innerHTML = leads.length ? leads.map(l => `
+      <tr>
+        <td><strong style="color:var(--primary)">${l.first_name} ${l.last_name||""}</strong></td>
+        <td><span style="font-size:12px">${l.phone||"—"}</span></td>
+        <td><span style="font-size:12px;color:var(--info)">${productLabel(l.product_interest)}</span></td>
+        <td>${stageBadge(l.stage)}</td>
+        <td>${scoreBar(l.ai_score)}</td>
+        <td><span style="font-size:12px">${l.age||"—"} / ${l.health_rating||"—"}</span></td>
+        <td><span style="font-size:12px">${l.coverage_amount ? "$"+Number(l.coverage_amount).toLocaleString() : "—"}</span></td>
+        <td><span style="font-size:11px;color:var(--text-light)">${l.source||"—"}</span></td>
+        <td><span style="font-size:11px;color:var(--text-light)">${timeAgo(l.created_at)}</span></td>
+        <td>
+          <div style="display:flex;gap:4px">
+            <button class="btn btn-outline btn-sm" onclick="openLead('${l.id}')">📂</button>
+            <button class="btn btn-outline btn-sm" onclick="quickCall('${l.id}','${l.first_name}','${l.phone||''}')">📞</button>
+            <button class="btn btn-outline btn-sm" onclick="quickSMS('${l.id}','${l.first_name}','${l.phone||''}')">💬</button>
+          </div>
+        </td>
+      </tr>
+    `).join("") : `<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-light)">No leads found.</td></tr>`;
+  }
+
+  async function quickCall(id, name, phone) {
+    if (!phone) return toast(`${name} has no phone number`, "warning");
+    try {
+      await api("POST", `/leads/${id}/call`, { scriptKey: "hot-lead" });
+      toast(`📞 AI call placed to ${name}!`, "success");
+    } catch (err) { toast(err.message, "error"); }
+  }
+
+  async function quickSMS(id, name, phone) {
+    if (!phone) return toast(`${name} has no phone number`, "warning");
+    try {
+      await api("POST", `/leads/${id}/sms`);
+      toast(`💬 SMS sent to ${name}!`, "success");
+    } catch (err) { toast(err.message, "error"); }
+  }
+
+  async function openLead(id) {
+    const modal = document.getElementById("lead-modal");
+    modal.classList.remove("hidden");
+    document.getElementById("modal-body").innerHTML = "Loading…";
+
+    try {
+      const { lead, followups, activity, referrals } = await api("GET", `/leads/${id}`);
+      document.getElementById("modal-title").textContent =
+        `${lead.first_name} ${lead.last_name||""} — ${productLabel(lead.product_interest)}`;
+
+      document.getElementById("modal-body").innerHTML = `
+        ${lead.score_reason ? `<div class="alert alert-info" style="margin-bottom:14px">🤖 AI Insight: ${lead.score_reason}</div>` : ""}
+
+        <div class="detail-grid" style="margin-bottom:16px">
+          ${[
+            ["Phone", lead.phone||"—"], ["Email", lead.email||"—"],
+            ["Stage", stageBadge(lead.stage)], ["AI Score", scoreBar(lead.ai_score)],
+            ["Age", lead.age||"—"], ["Health", lead.health_rating||"—"],
+            ["Tobacco", lead.tobacco_use?"Yes":"No"], ["Beneficiary", lead.beneficiary||"—"],
+            ["Coverage", lead.coverage_amount?"$"+Number(lead.coverage_amount).toLocaleString():"—"],
+            ["Budget", lead.monthly_budget?"$"+lead.monthly_budget+"/mo":"—"],
+            ["Source", lead.source||"—"], ["Added", formatDate(lead.created_at)],
+          ].map(([k,v]) => `
+            <div class="detail-row">
+              <div class="detail-key">${k}</div>
+              <div class="detail-val">${v}</div>
+            </div>`).join("")}
+        </div>
+
+        <div style="margin-bottom:14px">
+          <label>Move Stage</label>
+          <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+            ${["new","contacted","quoted","applied","placed","lost"].map(s =>
+              `<button class="btn btn-sm ${s===lead.stage?'btn-primary':'btn-outline'}" onclick="changeStage('${id}','${s}')">${s}</button>`
+            ).join("")}
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;margin-bottom:6px">
+            Follow-up History (${followups.length} touches)
+          </div>
+          <div class="touch-list">
+            ${followups.map(f => `
+              <div class="touch-row">
+                <span>${f.channel==="sms"?"💬":f.channel==="call"?"📞":"📧"}</span>
+                <span style="color:var(--text-light)">Touch ${f.sequence||"?"}</span>
+                <span>${f.message ? f.message.slice(0,60)+"…" : "—"}</span>
+                <span class="badge ${f.status==="sent"||f.status==="delivered"?"badge-placed":"badge-lost"}" style="margin-left:auto">${f.status}</span>
+                <span style="color:var(--text-light);min-width:60px;text-align:right">${timeAgo(f.sent_at)}</span>
+              </div>`).join("") || "<div style='font-size:12px;color:var(--text-light);padding:8px 0'>No touches yet — sequence will start automatically.</div>"}
+          </div>
+        </div>
+
+        ${lead.notes ? `<div style="margin-top:14px"><label>Notes</label><div style="font-size:13px;margin-top:4px;padding:10px;background:var(--bg);border-radius:6px">${lead.notes}</div></div>` : ""}
+      `;
+
+      document.getElementById("modal-call-btn").onclick = () => quickCall(id, lead.first_name, lead.phone);
+      document.getElementById("modal-sms-btn").onclick  = () => quickSMS(id, lead.first_name, lead.phone);
+    } catch (err) {
+      document.getElementById("modal-body").innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+    }
+  }
+
+  async function changeStage(id, stage) {
+    try {
+      await api("PATCH", `/leads/${id}`, { stage });
+      toast(`Stage → ${stage}`, "success");
+      loadLeads();
+      openLead(id);
+    } catch (err) { toast(err.message, "error"); }
+  }
+
+  function closeModal() {
+    document.getElementById("lead-modal").classList.add("hidden");
+  }
+
+  // Check for ?id= param to auto-open a lead
+  const urlId = new URLSearchParams(location.search).get("id");
+  loadLeads().then(() => { if (urlId) openLead(urlId); });
+</script>
+</body>
+</html>

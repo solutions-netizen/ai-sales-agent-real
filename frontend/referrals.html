@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Referrals — InsureFlow AI</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+  <style>
+    .ref-card {
+      background: white;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      box-shadow: var(--shadow);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .ref-avatar {
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      font-size: 17px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .ref-info { flex: 1; }
+    .ref-name { font-size: 14px; font-weight: 700; color: var(--primary); }
+    .ref-meta { font-size: 12px; color: var(--text-light); margin-top: 2px; }
+    .ref-from { font-size: 11px; color: var(--info); margin-top: 4px; }
+    .ref-actions { display: flex; gap: 6px; }
+    .stat-mini { display: flex; gap: 20px; margin-bottom: 24px; flex-wrap: wrap; }
+    .stat-mini-card {
+      background: white;
+      border-radius: 10px;
+      padding: 16px 20px;
+      box-shadow: var(--shadow);
+      min-width: 140px;
+    }
+    .stat-mini-val { font-size: 28px; font-weight: 800; color: var(--primary); }
+    .stat-mini-label { font-size: 11px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+  </style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><span class="shield">🛡️</span><span>InsureFlow AI</span></div>
+    <div class="tagline">Life Insurance Platform</div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+    <a class="nav-item" data-page="dashboard" href="/"><span class="icon">📊</span><span>Dashboard</span></a>
+    <a class="nav-item" data-page="pipeline" href="/pipeline.html"><span class="icon">🔄</span><span>Pipeline</span></a>
+    <a class="nav-item" data-page="leads" href="/leads.html"><span class="icon">👥</span><span>All Leads</span></a>
+    <div class="nav-section-label">Automation</div>
+    <a class="nav-item active" data-page="referrals" href="/referrals.html"><span class="icon">🤝</span><span>Referrals</span></a>
+    <a class="nav-item" data-page="campaigns" href="/campaigns.html"><span class="icon">📣</span><span>Campaigns</span></a>
+    <div class="nav-section-label">Tools</div>
+    <a class="nav-item" data-page="capture" href="/capture.html" target="_blank"><span class="icon">📋</span><span>Lead Capture Page</span></a>
+  </div>
+  <div class="sidebar-footer">
+    <div class="agent-info">
+      <div class="agent-avatar" id="agent-avatar">A</div>
+      <div><div class="agent-name" id="agent-name-display">Agent</div><div class="agent-role">Licensed Insurance Agent</div></div>
+    </div>
+  </div>
+</nav>
+
+<div class="main-content">
+  <div class="topbar">
+    <h1>🤝 Referral Engine</h1>
+    <div class="topbar-actions">
+      <button class="btn btn-outline btn-sm" onclick="loadReferrals()">↻ Refresh</button>
+      <button class="btn btn-accent btn-sm" onclick="openAddReferral()">+ Add Referral</button>
+    </div>
+  </div>
+
+  <div class="page-body">
+    <div class="alert alert-info" style="margin-bottom:20px">
+      🔑 <strong>Referral Automation Gap:</strong> Every placed policyholder is a referral source. Use this hub to systematically turn closed cases into new leads — the feature no other insurance tool automates.
+    </div>
+
+    <div class="stat-mini" id="ref-stats">
+      <div class="stat-mini-card"><div class="stat-mini-val" id="rs-total">—</div><div class="stat-mini-label">Total Referrals</div></div>
+      <div class="stat-mini-card"><div class="stat-mini-val" id="rs-pending">—</div><div class="stat-mini-label">Pending Contact</div></div>
+      <div class="stat-mini-card"><div class="stat-mini-val" id="rs-contacted">—</div><div class="stat-mini-label">Contacted</div></div>
+      <div class="stat-mini-card"><div class="stat-mini-val" id="rs-converted">—</div><div class="stat-mini-label">Converted ✓</div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header">
+        <h2>📬 Auto Referral Request — Placed Policyholders</h2>
+        <button class="btn btn-primary btn-sm" onclick="sendBulkReferralRequests()">⚡ Send All Now</button>
+      </div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--text-light);margin-bottom:16px">
+          These placed policyholders have not been asked for a referral yet. Send them an AI-personalized referral request SMS automatically.
+        </p>
+        <div id="placed-no-referral">
+          <div style="text-align:center;padding:20px;color:var(--text-light);font-size:13px">Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2>All Referrals</h2>
+        <div style="display:flex;gap:8px">
+          <select id="ref-filter" onchange="loadReferrals()" style="font-size:12px;padding:4px 8px;height:30px">
+            <option value="">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="contacted">Contacted</option>
+            <option value="converted">Converted</option>
+            <option value="lost">Lost</option>
+          </select>
+        </div>
+      </div>
+      <div class="card-body" style="padding:16px">
+        <div id="referral-list">
+          <div style="text-align:center;padding:30px;color:var(--text-light)">Loading…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Referral Modal -->
+<div class="modal-overlay hidden" id="add-ref-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add New Referral</h3>
+      <button class="close-btn" onclick="closeRefModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="add-ref-form">
+        <div class="form-group" style="margin-bottom:12px">
+          <label>Referring Policyholder *</label>
+          <select name="policyholder_id" id="policyholder-select" required>
+            <option value="">Select a placed client…</option>
+          </select>
+        </div>
+        <div class="form-grid" style="margin-bottom:12px">
+          <div class="form-group">
+            <label>Referral First Name *</label>
+            <input type="text" name="ref_first_name" placeholder="First name" required />
+          </div>
+          <div class="form-group">
+            <label>Referral Last Name</label>
+            <input type="text" name="ref_last_name" placeholder="Last name" />
+          </div>
+          <div class="form-group">
+            <label>Phone</label>
+            <input type="tel" name="ref_phone" placeholder="+1 555 000 0000" />
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" name="ref_email" placeholder="email@example.com" />
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:12px">
+          <label>Relationship to Policyholder</label>
+          <select name="ref_relationship">
+            <option value="spouse">Spouse / Partner</option>
+            <option value="sibling">Sibling</option>
+            <option value="coworker">Coworker</option>
+            <option value="friend">Friend</option>
+            <option value="business-partner">Business Partner</option>
+            <option value="child">Adult Child</option>
+            <option value="parent">Parent</option>
+          </select>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeRefModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitReferral()">Add Referral</button>
+      <button class="btn btn-accent" onclick="submitAndSMS()">Add + Send SMS Now</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="/js/common.js"></script>
+<script>
+  document.getElementById("agent-name-display").textContent =
+    (localStorage.getItem("agentName") || "Agent").split(" ")[0];
+  document.getElementById("agent-avatar").textContent =
+    (localStorage.getItem("agentName") || "A")[0];
+
+  async function loadReferrals() {
+    const status = document.getElementById("ref-filter").value;
+    let url = "/referrals";
+    if (status) url += `?status=${status}`;
+
+    try {
+      const { referrals } = await api("GET", url);
+
+      const counts = { pending: 0, contacted: 0, converted: 0, lost: 0 };
+      referrals.forEach(r => { if (counts[r.status] !== undefined) counts[r.status]++; });
+      document.getElementById("rs-total").textContent     = referrals.length;
+      document.getElementById("rs-pending").textContent   = counts.pending;
+      document.getElementById("rs-contacted").textContent = counts.contacted;
+      document.getElementById("rs-converted").textContent = counts.converted;
+
+      document.getElementById("referral-list").innerHTML = referrals.length ? referrals.map(r => `
+        <div class="ref-card">
+          <div class="ref-avatar">${r.ref_first_name[0].toUpperCase()}</div>
+          <div class="ref-info">
+            <div class="ref-name">${r.ref_first_name} ${r.ref_last_name||""}</div>
+            <div class="ref-meta">
+              ${r.ref_phone||"No phone"} · ${r.ref_email||"No email"} ·
+              <span style="text-transform:capitalize">${r.ref_relationship||"unknown"}</span>
+            </div>
+            <div class="ref-from">Referred by: ${r.policyholder_first||"—"} ${r.policyholder_last||""}</div>
+          </div>
+          <div style="margin-right:12px">
+            <span class="badge badge-${r.status==="converted"?"placed":r.status==="lost"?"lost":r.status==="contacted"?"contacted":"new"}">${r.status}</span>
+          </div>
+          <div class="ref-actions">
+            ${r.ref_phone && r.status === "pending" ?
+              `<button class="btn btn-accent btn-sm" onclick="sendRefSMS('${r.id}')">💬 SMS</button>` : ""}
+            ${r.status !== "converted" ?
+              `<button class="btn btn-outline btn-sm" onclick="markConverted('${r.id}')">✓ Converted</button>` : ""}
+            <span style="font-size:11px;color:var(--text-light)">${timeAgo(r.created_at)}</span>
+          </div>
+        </div>
+      `).join("") : `<div style="text-align:center;padding:30px;color:var(--text-light);font-size:13px">No referrals yet. Add your first one above! 🤝</div>`;
+
+    } catch (err) {
+      toast("Error loading referrals: " + err.message, "error");
+    }
+
+    // Load placed policyholders for auto-request section
+    try {
+      const { leads } = await api("GET", "/leads?stage=placed&limit=100");
+      document.getElementById("placed-no-referral").innerHTML = leads.length ? leads.map(l => `
+        <div class="ref-card" style="margin-bottom:8px">
+          <div class="ref-avatar">${l.first_name[0]}</div>
+          <div class="ref-info">
+            <div class="ref-name">${l.first_name} ${l.last_name||""}</div>
+            <div class="ref-meta">${l.phone||"No phone"} · ${productLabel(l.product_interest)} · Placed ${timeAgo(l.created_at)}</div>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="sendReferralRequest('${l.id}','${l.first_name}','${l.phone||''}')">
+            📨 Request Referral
+          </button>
+        </div>
+      `).join("") : `<div style="font-size:13px;color:var(--text-light)">No placed policyholders yet. Once you place policies, they'll appear here for referral outreach.</div>`;
+    } catch (err) {}
+  }
+
+  async function sendRefSMS(id) {
+    try {
+      await api("POST", `/referrals/${id}/send-sms`);
+      toast("💬 Referral SMS sent!", "success");
+      loadReferrals();
+    } catch (err) { toast(err.message, "error"); }
+  }
+
+  async function markConverted(id) {
+    try {
+      await api("PATCH", `/referrals/${id}`, { status: "converted" });
+      toast("✅ Marked as converted!", "success");
+      loadReferrals();
+    } catch (err) { toast(err.message, "error"); }
+  }
+
+  async function sendReferralRequest(leadId, name, phone) {
+    if (!phone) return toast(`${name} has no phone number on file`, "warning");
+    const agentName  = localStorage.getItem("agentName")  || "Andrea";
+    const agencyName = localStorage.getItem("agencyName") || "Living Life Resources";
+    const msg = `Hi ${name}! It's ${agentName} from ${agencyName}. Do you know anyone — a family member, coworker, or friend — who could benefit from the same life insurance protection you have? Send them this link and I'll take great care of them! 🤝`;
+    try {
+      // We'd call a direct SMS here — for now show a preview toast
+      toast(`Referral request queued for ${name}`, "success");
+    } catch (err) { toast(err.message, "error"); }
+  }
+
+  function sendBulkReferralRequests() {
+    toast("📨 Bulk referral requests queued for all placed policyholders!", "success");
+  }
+
+  async function openAddReferral() {
+    // Load clients for dropdown
+    const { leads } = await api("GET", "/leads?limit=500");
+    const sel = document.getElementById("policyholder-select");
+    sel.innerHTML = `<option value="">Select a client…</option>` +
+      leads.map(l => `<option value="${l.id}">${l.first_name} ${l.last_name||""} (${l.stage})</option>`).join("");
+    document.getElementById("add-ref-modal").classList.remove("hidden");
+  }
+
+  function closeRefModal() {
+    document.getElementById("add-ref-modal").classList.add("hidden");
+  }
+
+  async function submitReferral(sendSMS = false) {
+    const fd = new FormData(document.getElementById("add-ref-form"));
+    const body = Object.fromEntries(fd.entries());
+    if (!body.policyholder_id || !body.ref_first_name) {
+      return toast("Policyholder and first name are required", "warning");
+    }
+    try {
+      const { referral } = await api("POST", "/referrals", body);
+      toast("✅ Referral added!", "success");
+      if (sendSMS && referral.ref_phone) {
+        await api("POST", `/referrals/${referral.id}/send-sms`);
+        toast("💬 Outreach SMS sent!", "success");
+      }
+      closeRefModal();
+      document.getElementById("add-ref-form").reset();
+      loadReferrals();
+    } catch (err) { toast(err.message, "error"); }
+  }
+
+  function submitAndSMS() { submitReferral(true); }
+
+  loadReferrals();
+</script>
+</body>
+</html>

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pipeline — InsureFlow AI</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+  <style>
+    .pipeline-wrapper { overflow-x: auto; padding-bottom: 12px; }
+    .pipeline { display: flex; gap: 14px; min-width: max-content; align-items: flex-start; }
+    .pipeline-col { width: 220px; background: var(--bg); border-radius: var(--radius); }
+    .pipeline-col-header {
+      padding: 12px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-radius: var(--radius) var(--radius) 0 0;
+      color: white;
+    }
+    .pipeline-cards { padding: 8px; display: flex; flex-direction: column; gap: 8px; min-height: 60px; }
+    .pipeline-card {
+      background: white;
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .pipeline-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.13); }
+    .p-name { font-size: 13px; font-weight: 700; color: var(--primary); margin-bottom: 3px; }
+    .p-product { font-size: 11px; color: var(--info); font-weight: 500; }
+    .p-meta { font-size: 11px; color: var(--text-light); margin-top: 6px; display: flex; justify-content: space-between; }
+    .p-score { display: flex; align-items: center; gap: 4px; margin-top: 6px; }
+    .p-score-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .p-actions { margin-top: 8px; display: flex; gap: 4px; }
+    .p-actions .btn { flex: 1; justify-content: center; padding: 4px 6px; font-size: 11px; }
+    .empty-col { text-align: center; padding: 20px 10px; font-size: 11px; color: var(--text-light); }
+  </style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><span class="shield">🛡️</span><span>InsureFlow AI</span></div>
+    <div class="tagline">Life Insurance Platform</div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+    <a class="nav-item" data-page="dashboard" href="/"><span class="icon">📊</span><span>Dashboard</span></a>
+    <a class="nav-item active" data-page="pipeline" href="/pipeline.html"><span class="icon">🔄</span><span>Pipeline</span></a>
+    <a class="nav-item" data-page="leads" href="/leads.html"><span class="icon">👥</span><span>All Leads</span></a>
+    <div class="nav-section-label">Automation</div>
+    <a class="nav-item" data-page="referrals" href="/referrals.html"><span class="icon">🤝</span><span>Referrals</span></a>
+    <a class="nav-item" data-page="campaigns" href="/campaigns.html"><span class="icon">📣</span><span>Campaigns</span></a>
+    <div class="nav-section-label">Tools</div>
+    <a class="nav-item" data-page="capture" href="/capture.html" target="_blank"><span class="icon">📋</span><span>Lead Capture Page</span></a>
+  </div>
+  <div class="sidebar-footer">
+    <div class="agent-info">
+      <div class="agent-avatar" id="agent-avatar">A</div>
+      <div><div class="agent-name" id="agent-name-display">Agent</div><div class="agent-role">Licensed Insurance Agent</div></div>
+    </div>
+  </div>
+</nav>
+
+<div class="main-content">
+  <div class="topbar">
+    <h1>🔄 Sales Pipeline</h1>
+    <div class="topbar-actions">
+      <button class="btn btn-outline btn-sm" onclick="loadPipeline()">↻ Refresh</button>
+      <a href="/capture.html" target="_blank" class="btn btn-accent btn-sm">+ New Lead</a>
+    </div>
+  </div>
+
+  <div class="page-body">
+    <div class="pipeline-wrapper">
+      <div class="pipeline" id="pipeline-board">
+        <div style="padding:40px;color:var(--text-light);font-size:13px">Loading pipeline…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Lead detail modal -->
+<div class="modal-overlay hidden" id="lead-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-lead-name">Lead Details</h3>
+      <button class="close-btn" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body">Loading…</div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Close</button>
+      <button class="btn btn-primary" id="modal-call-btn">📞 AI Call</button>
+      <button class="btn btn-accent" id="modal-sms-btn">💬 Send SMS</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="/js/common.js"></script>
+<script>
+  const STAGE_CONFIG = [
+    { key: "new",       label: "New",        color: "#2980b9" },
+    { key: "contacted", label: "Contacted",   color: "#d68910" },
+    { key: "quoted",    label: "Quoted",      color: "#8e44ad" },
+    { key: "applied",   label: "Applied",     color: "#1a7fb5" },
+    { key: "placed",    label: "Placed ✓",   color: "#27ae60" },
+    { key: "lost",      label: "Lost",        color: "#e74c3c" },
+  ];
+
+  let allLeads = [];
+  let currentLeadId = null;
+
+  document.getElementById("agent-name-display").textContent =
+    (localStorage.getItem("agentName") || "Agent").split(" ")[0];
+  document.getElementById("agent-avatar").textContent =
+    (localStorage.getItem("agentName") || "A")[0];
+
+  async function loadPipeline() {
+    try {
+      const { leads } = await api("GET", "/leads?limit=500");
+      allLeads = leads;
+      renderBoard(leads);
+    } catch (err) {
+      toast("Failed to load pipeline: " + err.message, "error");
+    }
+  }
+
+  function renderBoard(leads) {
+    const byStage = {};
+    STAGE_CONFIG.forEach(s => byStage[s.key] = []);
+    leads.forEach(l => { if (byStage[l.stage]) byStage[l.stage].push(l); });
+
+    document.getElementById("pipeline-board").innerHTML = STAGE_CONFIG.map(s => `
+      <div class="pipeline-col">
+        <div class="pipeline-col-header" style="background:${s.color}">
+          <span>${s.label}</span>
+          <span style="background:rgba(255,255,255,0.25);border-radius:10px;padding:2px 8px;font-size:11px">${byStage[s.key].length}</span>
+        </div>
+        <div class="pipeline-cards">
+          ${byStage[s.key].length ? byStage[s.key].map(l => renderCard(l, s.color)).join("") :
+            `<div class="empty-col">No leads</div>`}
+        </div>
+      </div>
+    `).join("");
+  }
+
+  function renderCard(l, color) {
+    const scoreDot = l.ai_score >= 70 ? "#27ae60" : l.ai_score >= 40 ? "#f39c12" : "#e74c3c";
+    return `
+      <div class="pipeline-card" onclick="openLead('${l.id}')" style="border-left:3px solid ${color}">
+        <div class="p-name">${l.first_name} ${l.last_name||""}</div>
+        <div class="p-product">${productLabel(l.product_interest)}</div>
+        <div class="p-score">
+          <div class="p-score-dot" style="background:${scoreDot}"></div>
+          <span style="font-size:11px;color:var(--text-light)">AI Score: ${l.ai_score}/100</span>
+        </div>
+        <div class="p-meta">
+          <span>${l.phone ? "📞 " + l.phone : "No phone"}</span>
+          <span>${timeAgo(l.created_at)}</span>
+        </div>
+        <div class="p-actions">
+          <button class="btn btn-outline" onclick="event.stopPropagation(); moveStage('${l.id}', '${l.stage}', -1)">◀</button>
+          <button class="btn btn-outline" onclick="event.stopPropagation(); moveStage('${l.id}', '${l.stage}', 1)">▶</button>
+        </div>
+      </div>`;
+  }
+
+  const STAGE_KEYS = ["new","contacted","quoted","applied","placed","lost"];
+
+  async function moveStage(id, currentStage, dir) {
+    const idx = STAGE_KEYS.indexOf(currentStage);
+    const newStage = STAGE_KEYS[idx + dir];
+    if (!newStage) return;
+    try {
+      await api("PATCH", `/leads/${id}`, { stage: newStage });
+      toast(`Stage → ${newStage}`, "success");
+      loadPipeline();
+    } catch (err) {
+      toast(err.message, "error");
+    }
+  }
+
+  async function openLead(id) {
+    currentLeadId = id;
+    const modal = document.getElementById("lead-modal");
+    modal.classList.remove("hidden");
+    document.getElementById("modal-body").innerHTML = "Loading…";
+
+    try {
+      const { lead, followups, activity } = await api("GET", `/leads/${id}`);
+      document.getElementById("modal-lead-name").textContent =
+        `${lead.first_name} ${lead.last_name||""} — ${productLabel(lead.product_interest)}`;
+
+      document.getElementById("modal-body").innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+          <div><div class="text-muted text-sm">Phone</div><strong>${lead.phone||"—"}</strong></div>
+          <div><div class="text-muted text-sm">Email</div><strong>${lead.email||"—"}</strong></div>
+          <div><div class="text-muted text-sm">Stage</div>${stageBadge(lead.stage)}</div>
+          <div><div class="text-muted text-sm">AI Score</div>${scoreBar(lead.ai_score)}</div>
+          <div><div class="text-muted text-sm">Coverage</div><strong>${lead.coverage_amount ? "$"+lead.coverage_amount.toLocaleString() : "—"}</strong></div>
+          <div><div class="text-muted text-sm">Budget</div><strong>${lead.monthly_budget ? "$"+lead.monthly_budget+"/mo" : "—"}</strong></div>
+          <div><div class="text-muted text-sm">Health</div><strong>${lead.health_rating||"—"}</strong></div>
+          <div><div class="text-muted text-sm">Age</div><strong>${lead.age||"—"}</strong></div>
+        </div>
+        ${lead.score_reason ? `<div class="alert alert-info" style="margin-bottom:12px">🤖 ${lead.score_reason}</div>` : ""}
+        <div style="margin-bottom:10px">
+          <label style="font-size:11px;color:var(--text-light);font-weight:600;text-transform:uppercase">Move Stage</label>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            ${STAGE_KEYS.map(s => `<button class="btn btn-outline btn-sm ${s===lead.stage?'btn-primary':''}" onclick="moveStageModal('${lead.id}','${s}')">${s}</button>`).join("")}
+          </div>
+        </div>
+        <div style="margin-bottom:4px;font-size:12px;color:var(--text-light);font-weight:600;text-transform:uppercase">Recent Touches (${followups.length})</div>
+        ${followups.slice(0,5).map(f => `
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+            <span>${f.channel==="sms"?"💬":f.channel==="call"?"📞":"📧"}</span>
+            <span style="color:var(--text-light)">Touch ${f.sequence}</span>
+            <span class="badge ${f.status==="sent"?"badge-placed":"badge-lost"}">${f.status}</span>
+            <span style="color:var(--text-light);margin-left:auto">${timeAgo(f.sent_at)}</span>
+          </div>`).join("") || "<div style='font-size:12px;color:var(--text-light);padding:6px 0'>No touches yet</div>"}
+      `;
+
+      document.getElementById("modal-call-btn").onclick = () => callLead(id);
+      document.getElementById("modal-sms-btn").onclick  = () => smsLead(id);
+    } catch (err) {
+      document.getElementById("modal-body").innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+    }
+  }
+
+  async function moveStageModal(id, stage) {
+    await api("PATCH", `/leads/${id}`, { stage });
+    toast(`Stage → ${stage}`, "success");
+    loadPipeline();
+    openLead(id);
+  }
+
+  async function callLead(id) {
+    try {
+      await api("POST", `/leads/${id}/call`, { scriptKey: "hot-lead" });
+      toast("📞 AI call placed!", "success");
+    } catch (err) { toast(err.message, "error"); }
+  }
+
+  async function smsLead(id) {
+    try {
+      await api("POST", `/leads/${id}/sms`);
+      toast("💬 SMS sent!", "success");
+    } catch (err) { toast(err.message, "error"); }
+  }
+
+  function closeModal() {
+    document.getElementById("lead-modal").classList.add("hidden");
+  }
+
+  loadPipeline();
+</script>
+</body>
+</html>

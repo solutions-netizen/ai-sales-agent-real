@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Campaigns — InsureFlow AI</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+  <style>
+    .campaign-card {
+      background: white;
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      margin-bottom: 12px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .campaign-icon { font-size: 28px; flex-shrink: 0; width: 44px; text-align: center; }
+    .campaign-info { flex: 1; }
+    .campaign-name { font-size: 14px; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+    .campaign-trigger { font-size: 11px; color: var(--info); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .campaign-msg { font-size: 12px; color: var(--text-light); line-height: 1.5; }
+    .campaign-actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; flex-shrink: 0; }
+    .toggle-switch {
+      position: relative;
+      width: 44px; height: 24px;
+      cursor: pointer;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .toggle-slider {
+      position: absolute; inset: 0;
+      background: var(--border);
+      border-radius: 12px;
+      transition: 0.2s;
+    }
+    .toggle-slider:before {
+      content: '';
+      position: absolute;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: white;
+      top: 3px; left: 3px;
+      transition: 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    input:checked + .toggle-slider { background: var(--accent); }
+    input:checked + .toggle-slider:before { transform: translateX(20px); }
+    .channel-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+    .channel-sms   { background: #e8f8e8; color: #27ae60; }
+    .channel-email { background: #fff8e8; color: #d68910; }
+    .channel-call  { background: #eaf4ff; color: #2980b9; }
+    .sequence-timeline { display: flex; gap: 0; margin-bottom: 24px; overflow-x: auto; padding-bottom: 8px; }
+    .sequence-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 100px;
+    }
+    .sequence-step .s-dot {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .sequence-step .s-line { height: 2px; flex: 1; background: var(--border); align-self: center; width: 50px; }
+    .sequence-step .s-label { font-size: 11px; color: var(--text-light); margin-top: 6px; text-align: center; }
+    .sequence-step .s-day { font-size: 10px; color: var(--info); font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand"><span class="shield">🛡️</span><span>InsureFlow AI</span></div>
+    <div class="tagline">Life Insurance Platform</div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+    <a class="nav-item" data-page="dashboard" href="/"><span class="icon">📊</span><span>Dashboard</span></a>
+    <a class="nav-item" data-page="pipeline" href="/pipeline.html"><span class="icon">🔄</span><span>Pipeline</span></a>
+    <a class="nav-item" data-page="leads" href="/leads.html"><span class="icon">👥</span><span>All Leads</span></a>
+    <div class="nav-section-label">Automation</div>
+    <a class="nav-item" data-page="referrals" href="/referrals.html"><span class="icon">🤝</span><span>Referrals</span></a>
+    <a class="nav-item active" data-page="campaigns" href="/campaigns.html"><span class="icon">📣</span><span>Campaigns</span></a>
+    <div class="nav-section-label">Tools</div>
+    <a class="nav-item" data-page="capture" href="/capture.html" target="_blank"><span class="icon">📋</span><span>Lead Capture Page</span></a>
+  </div>
+  <div class="sidebar-footer">
+    <div class="agent-info">
+      <div class="agent-avatar" id="agent-avatar">A</div>
+      <div><div class="agent-name" id="agent-name-display">Agent</div><div class="agent-role">Licensed Insurance Agent</div></div>
+    </div>
+  </div>
+</nav>
+
+<div class="main-content">
+  <div class="topbar">
+    <h1>📣 Campaigns & Automation</h1>
+    <div class="topbar-actions">
+      <button class="btn btn-outline btn-sm" onclick="loadCampaigns()">↻ Refresh</button>
+    </div>
+  </div>
+
+  <div class="page-body">
+
+    <!-- Follow-up sequence visual -->
+    <div class="card" style="margin-bottom:24px">
+      <div class="card-header"><h2>⚡ Automated Follow-Up Sequence (Every New Lead)</h2></div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--text-light);margin-bottom:18px">
+          The moment a new lead is captured, this 6-touch sequence fires automatically — no manual effort needed.
+        </p>
+        <div class="sequence-timeline">
+          <div class="sequence-step">
+            <div class="s-dot">💬</div>
+            <div class="s-label">Welcome<br/>SMS</div>
+            <div class="s-day">Day 0</div>
+          </div>
+          <div style="flex:1;height:2px;background:var(--border);align-self:center;margin-top:-18px"></div>
+          <div class="sequence-step">
+            <div class="s-dot">💬</div>
+            <div class="s-label">Check-In<br/>SMS</div>
+            <div class="s-day">Day 2</div>
+          </div>
+          <div style="flex:1;height:2px;background:var(--border);align-self:center;margin-top:-18px"></div>
+          <div class="sequence-step">
+            <div class="s-dot">💬</div>
+            <div class="s-label">Quote<br/>Nudge</div>
+            <div class="s-day">Day 5</div>
+          </div>
+          <div style="flex:1;height:2px;background:var(--border);align-self:center;margin-top:-18px"></div>
+          <div class="sequence-step">
+            <div class="s-dot">📞</div>
+            <div class="s-label">AI<br/>Call</div>
+            <div class="s-day">Day 7</div>
+          </div>
+          <div style="flex:1;height:2px;background:var(--border);align-self:center;margin-top:-18px"></div>
+          <div class="sequence-step">
+            <div class="s-dot">💬</div>
+            <div class="s-label">Re-engage<br/>SMS</div>
+            <div class="s-day">Day 14</div>
+          </div>
+          <div style="flex:1;height:2px;background:var(--border);align-self:center;margin-top:-18px"></div>
+          <div class="sequence-step">
+            <div class="s-dot">💬</div>
+            <div class="s-label">Final<br/>Check-In</div>
+            <div class="s-day">Day 30</div>
+          </div>
+        </div>
+        <div class="alert alert-success" style="margin-top:8px;font-size:12px">
+          ✅ Sequence is always-on. Stops automatically if lead responds or reaches "Placed" or "Lost" stage.
+        </div>
+      </div>
+    </div>
+
+    <!-- Campaign cards -->
+    <div class="card">
+      <div class="card-header"><h2>📋 Message Templates</h2><span style="font-size:12px;color:var(--text-light)">Toggle on/off · Click to edit</span></div>
+      <div class="card-body" style="padding:16px">
+        <div id="campaigns-list">
+          <div style="text-align:center;padding:20px;color:var(--text-light)">Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Scripts section -->
+    <div class="card" style="margin-top:20px">
+      <div class="card-header"><h2>🤖 AI Call Scripts</h2></div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--text-light);margin-bottom:16px">
+          These scripts are fed to GPT-4o-mini to generate natural, personalized call scripts. Each is life-insurance specific.
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          ${[
+            ["cold-call","❄️","Cold Call","First contact for new leads"],
+            ["hot-lead","🔥","Hot Lead Call","High-score leads ready to buy"],
+            ["follow-up","🔄","Follow-Up Call","Day-7 automated touch"],
+            ["voicemail","📱","Voicemail Drop","When they don't answer"],
+            ["referral-outreach","🤝","Referral Outreach","Warm intro from existing client"],
+            ["anniversary","🎉","Policy Anniversary","Annual check-in + referral ask"],
+          ].map(([key, icon, name, desc]) => `
+            <div style="background:var(--bg);border-radius:8px;padding:14px">
+              <div style="font-size:20px;margin-bottom:6px">${icon}</div>
+              <div style="font-size:13px;font-weight:700;color:var(--primary)">${name}</div>
+              <div style="font-size:11px;color:var(--text-light)">${desc}</div>
+            </div>
+          `).join("")}
+        </div>
+        <div id="scripts-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:0"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Campaign Modal -->
+<div class="modal-overlay hidden" id="edit-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="edit-modal-title">Edit Campaign</h3>
+      <button class="close-btn" onclick="closeEditModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-campaign-id" />
+      <div class="form-group" style="margin-bottom:14px">
+        <label>Campaign Name</label>
+        <input type="text" id="edit-name" />
+      </div>
+      <div class="form-group">
+        <label>Message Template</label>
+        <textarea id="edit-template" style="min-height:120px;resize:vertical"></textarea>
+        <div style="font-size:11px;color:var(--text-light);margin-top:4px">
+          Variables: {{firstName}} {{agentName}} {{agencyName}} {{policyAge}} {{referralLink}}
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="/js/common.js"></script>
+<script>
+  const CHANNEL_ICONS = { sms: "💬", email: "📧", call: "📞" };
+  const TRIGGER_LABELS = {
+    "new-lead": "New Lead",
+    "stage-change": "Stage Change",
+    "anniversary": "Policy Anniversary",
+    "referral-request": "Referral Request",
+  };
+
+  document.getElementById("agent-name-display").textContent =
+    (localStorage.getItem("agentName") || "Agent").split(" ")[0];
+  document.getElementById("agent-avatar").textContent =
+    (localStorage.getItem("agentName") || "A")[0];
+
+  async function loadCampaigns() {
+    try {
+      const { campaigns } = await api("GET", "/campaigns");
+      document.getElementById("campaigns-list").innerHTML = campaigns.map(c => `
+        <div class="campaign-card">
+          <div class="campaign-icon">${CHANNEL_ICONS[c.type] || "📣"}</div>
+          <div class="campaign-info">
+            <div class="campaign-name">${c.name}</div>
+            <div class="campaign-trigger">
+              <span class="channel-badge channel-${c.type}">${c.type}</span>
+              &nbsp;Trigger: ${TRIGGER_LABELS[c.trigger] || c.trigger}
+              ${c.product !== "all" ? ` · ${productLabel(c.product)}` : ""}
+            </div>
+            <div class="campaign-msg">${c.message_template.slice(0, 140)}…</div>
+          </div>
+          <div class="campaign-actions">
+            <label class="toggle-switch" title="${c.active ? 'Active' : 'Paused'}">
+              <input type="checkbox" ${c.active ? "checked" : ""} onchange="toggleCampaign('${c.id}', this.checked)" />
+              <div class="toggle-slider"></div>
+            </label>
+            <button class="btn btn-outline btn-sm" onclick="openEdit('${c.id}','${escHtml(c.name)}',\`${escJs(c.message_template)}\`)">✏️ Edit</button>
+            <span style="font-size:10px;color:var(--text-light)">${c.sent_count} sent</span>
+          </div>
+        </div>
+      `).join("");
+    } catch (err) {
+      toast("Failed to load campaigns: " + err.message, "error");
+    }
+  }
+
+  async function toggleCampaign(id, active) {
+    try {
+      await api("PATCH", `/campaigns/${id}`, { active: active ? 1 : 0 });
+      toast(active ? "✅ Campaign activated" : "⏸ Campaign paused");
+    } catch (err) { toast(err.message, "error"); }
+  }
+
+  function openEdit(id, name, template) {
+    document.getElementById("edit-campaign-id").value = id;
+    document.getElementById("edit-name").value = name;
+    document.getElementById("edit-template").value = template;
+    document.getElementById("edit-modal-title").textContent = `Edit: ${name}`;
+    document.getElementById("edit-modal").classList.remove("hidden");
+  }
+
+  function closeEditModal() {
+    document.getElementById("edit-modal").classList.add("hidden");
+  }
+
+  async function saveEdit() {
+    const id = document.getElementById("edit-campaign-id").value;
+    const name = document.getElementById("edit-name").value;
+    const template = document.getElementById("edit-template").value;
+    try {
+      await api("PATCH", `/campaigns/${id}`, { name, message_template: template });
+      toast("✅ Campaign updated!", "success");
+      closeEditModal();
+      loadCampaigns();
+    } catch (err) { toast(err.message, "error"); }
+  }
+
+  function escHtml(s) { return s.replace(/'/g,"&#39;").replace(/"/g,"&quot;"); }
+  function escJs(s)   { return s.replace(/`/g,"\\`").replace(/\${/g,"\\${"); }
+
+  loadCampaigns();
+</script>
+</body>
+</html>

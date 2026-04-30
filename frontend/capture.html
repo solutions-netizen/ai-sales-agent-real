@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Get Your Free Life Insurance Quote — InsureFlow AI</title>
+  <style>
+    :root {
+      --primary: #1a3a5c;
+      --accent: #2ecc71;
+      --accent-dark: #27ae60;
+      --text: #2c3e50;
+      --text-light: #7f8c8d;
+      --border: #dce3ec;
+      --bg: #f0f4f8;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #0f2540 0%, #1a4a7c 50%, #0f2540 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px 60px;
+    }
+
+    /* Hero */
+    .hero { text-align: center; color: white; margin-bottom: 36px; max-width: 560px; }
+    .hero .badge {
+      display: inline-block;
+      background: rgba(46,204,113,0.2);
+      border: 1px solid rgba(46,204,113,0.5);
+      color: #2ecc71;
+      padding: 5px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .hero h1 { font-size: 36px; font-weight: 800; line-height: 1.2; margin-bottom: 14px; }
+    .hero h1 span { color: #2ecc71; }
+    .hero p { font-size: 16px; color: rgba(255,255,255,0.75); line-height: 1.6; }
+
+    /* Trust badges */
+    .trust-row {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 32px;
+    }
+    .trust-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: rgba(255,255,255,0.75);
+      font-size: 13px;
+    }
+    .trust-icon { font-size: 18px; }
+
+    /* Form card */
+    .form-card {
+      background: white;
+      border-radius: 16px;
+      padding: 36px;
+      max-width: 540px;
+      width: 100%;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.3);
+    }
+
+    .form-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 6px;
+    }
+    .form-subtitle {
+      font-size: 13px;
+      color: var(--text-light);
+      margin-bottom: 24px;
+    }
+
+    /* Steps */
+    .step { display: none; }
+    .step.active { display: block; }
+    .step-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 28px;
+    }
+    .step-dot {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--border);
+      color: var(--text-light);
+      font-size: 12px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-dot.done { background: var(--accent); color: white; }
+    .step-dot.current { background: var(--primary); color: white; }
+    .step-line { flex: 1; height: 2px; background: var(--border); }
+    .step-line.done { background: var(--accent); }
+
+    /* Form elements */
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .form-row.single { grid-template-columns: 1fr; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-light);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    input, select {
+      padding: 11px 13px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      color: var(--text);
+      background: white;
+      transition: border-color 0.2s;
+      font-family: inherit;
+      width: 100%;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    /* Product selector */
+    .product-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .product-btn {
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: white;
+    }
+    .product-btn:hover { border-color: var(--primary); background: #f7fafd; }
+    .product-btn.selected { border-color: var(--accent); background: #f0fdf4; }
+    .product-btn .p-icon { font-size: 24px; margin-bottom: 5px; display: block; }
+    .product-btn .p-name { font-size: 12px; font-weight: 700; color: var(--primary); display: block; }
+    .product-btn .p-desc { font-size: 10px; color: var(--text-light); margin-top: 2px; display: block; }
+
+    /* Health selector */
+    .health-opts { display: flex; gap: 8px; margin-bottom: 14px; }
+    .health-opt {
+      flex: 1;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 6px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-light);
+      transition: all 0.15s;
+    }
+    .health-opt:hover { border-color: var(--primary); color: var(--primary); }
+    .health-opt.selected { border-color: var(--accent); background: #f0fdf4; color: var(--accent-dark); }
+
+    /* Tobacco toggle */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      background: var(--bg);
+      border-radius: 8px;
+      margin-bottom: 14px;
+    }
+    .toggle-label { font-size: 13px; font-weight: 600; color: var(--text); }
+    .toggle-sub   { font-size: 11px; color: var(--text-light); }
+    .toggle { display: flex; gap: 6px; }
+    .toggle-btn {
+      padding: 5px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      background: white;
+      color: var(--text-light);
+    }
+    .toggle-btn.yes.selected { background: #fdf0f0; border-color: #e74c3c; color: #e74c3c; }
+    .toggle-btn.no.selected  { background: #f0fdf4; border-color: var(--accent); color: var(--accent-dark); }
+
+    /* Range slider */
+    .range-group { margin-bottom: 14px; }
+    .range-display {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--primary);
+      text-align: center;
+      margin-bottom: 6px;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--border);
+      padding: 0;
+      border: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: var(--primary);
+      cursor: pointer;
+    }
+    .range-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-light);
+      margin-top: 4px;
+    }
+
+    /* Navigation buttons */
+    .btn-row { display: flex; gap: 10px; margin-top: 24px; }
+    .btn-next, .btn-back, .btn-submit {
+      padding: 13px 24px;
+      border-radius: 9px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .btn-next, .btn-submit {
+      background: var(--primary);
+      color: white;
+      flex: 1;
+    }
+    .btn-next:hover, .btn-submit:hover { background: #254d7a; }
+    .btn-submit { background: var(--accent); }
+    .btn-submit:hover { background: var(--accent-dark); }
+    .btn-back {
+      background: var(--bg);
+      color: var(--text-light);
+      border: 1.5px solid var(--border);
+    }
+    .btn-back:hover { background: var(--border); }
+
+    /* AI Chat widget */
+    .chat-toggle {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      font-size: 24px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100;
+    }
+    .chat-box {
+      position: fixed;
+      bottom: 90px;
+      right: 24px;
+      width: 320px;
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .chat-box.open { display: flex; }
+    .chat-header {
+      background: var(--primary);
+      color: white;
+      padding: 14px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .chat-messages {
+      flex: 1;
+      padding: 14px;
+      max-height: 280px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .chat-msg {
+      max-width: 82%;
+      padding: 9px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .chat-msg.agent { background: #f0f4f8; color: var(--text); align-self: flex-start; }
+    .chat-msg.user  { background: var(--primary); color: white; align-self: flex-end; }
+    .chat-input-row { display: flex; padding: 10px; border-top: 1px solid var(--border); gap: 6px; }
+    .chat-input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+    }
+    .chat-send {
+      padding: 8px 14px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    /* Success screen */
+    .success-screen {
+      text-align: center;
+      padding: 20px 0;
+    }
+    .success-icon { font-size: 64px; margin-bottom: 16px; }
+    .success-title { font-size: 24px; font-weight: 800; color: var(--primary); margin-bottom: 10px; }
+    .success-sub { font-size: 14px; color: var(--text-light); line-height: 1.6; max-width: 380px; margin: 0 auto; }
+    .next-steps { background: var(--bg); border-radius: 10px; padding: 16px; margin-top: 20px; text-align: left; }
+    .next-step { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; font-size: 13px; }
+    .next-step .step-num {
+      width: 22px; height: 22px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    @media (max-width: 500px) {
+      .form-row { grid-template-columns: 1fr; }
+      .product-grid { grid-template-columns: 1fr 1fr; }
+      .hero h1 { font-size: 26px; }
+      .form-card { padding: 24px 18px; }
+      .chat-box { width: calc(100vw - 32px); right: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="badge">🛡️ Free · No Obligation · 2 Minutes</div>
+  <h1>Protect Your Family with<br/><span>Affordable Life Insurance</span></h1>
+  <p>Get personalized quotes from top-rated carriers. Our AI matches you with the perfect plan — in minutes, not days.</p>
+</div>
+
+<div class="trust-row">
+  <div class="trust-item"><span class="trust-icon">✅</span> No Medical Exam Required</div>
+  <div class="trust-item"><span class="trust-icon">🔒</span> 100% Confidential</div>
+  <div class="trust-item"><span class="trust-icon">⚡</span> Instant Quote</div>
+  <div class="trust-item"><span class="trust-icon">💰</span> Coverage from $8/mo</div>
+</div>
+
+<div class="form-card">
+  <!-- Step indicator -->
+  <div class="step-indicator" id="step-indicator">
+    <div class="step-dot current" id="dot-1">1</div>
+    <div class="step-line" id="line-1"></div>
+    <div class="step-dot" id="dot-2">2</div>
+    <div class="step-line" id="line-2"></div>
+    <div class="step-dot" id="dot-3">3</div>
+    <div class="step-line" id="line-3"></div>
+    <div class="step-dot" id="dot-4">✓</div>
+  </div>
+
+  <form id="capture-form" novalidate>
+
+    <!-- Step 1: Product selection -->
+    <div class="step active" id="step-1">
+      <div class="form-title">What type of coverage are you looking for?</div>
+      <div class="form-subtitle">Select all that apply — your agent will help you find the best fit.</div>
+
+      <input type="hidden" name="product_interest" id="product-input" value="term-life" />
+      <div class="product-grid">
+        <div class="product-btn selected" onclick="selectProduct('term-life', this)">
+          <span class="p-icon">📋</span>
+          <span class="p-name">Term Life</span>
+          <span class="p-desc">Most affordable • 10-30 yrs</span>
+        </div>
+        <div class="product-btn" onclick="selectProduct('whole-life', this)">
+          <span class="p-icon">🏦</span>
+          <span class="p-name">Whole Life</span>
+          <span class="p-desc">Lifetime coverage + cash value</span>
+        </div>
+        <div class="product-btn" onclick="selectProduct('iul', this)">
+          <span class="p-icon">📈</span>
+          <span class="p-name">IUL</span>
+          <span class="p-desc">Insurance + wealth building</span>
+        </div>
+        <div class="product-btn" onclick="selectProduct('final-expense', this)">
+          <span class="p-icon">🕊️</span>
+          <span class="p-name">Final Expense</span>
+          <span class="p-desc">Covers burial & end-of-life costs</span>
+        </div>
+        <div class="product-btn" onclick="selectProduct('mortgage-protection', this)">
+          <span class="p-icon">🏡</span>
+          <span class="p-name">Mortgage Protection</span>
+          <span class="p-desc">Protects your home for family</span>
+        </div>
+        <div class="product-btn" onclick="selectProduct('annuity', this)">
+          <span class="p-icon">💵</span>
+          <span class="p-name">Annuity</span>
+          <span class="p-desc">Guaranteed retirement income</span>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Coverage Amount</label>
+          <select name="coverage_amount">
+            <option value="">Not sure yet</option>
+            <option value="50000">$50,000</option>
+            <option value="100000">$100,000</option>
+            <option value="250000">$250,000</option>
+            <option value="500000" selected>$500,000</option>
+            <option value="750000">$750,000</option>
+            <option value="1000000">$1,000,000</option>
+            <option value="2000000">$2,000,000+</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Main Beneficiary</label>
+          <select name="beneficiary">
+            <option value="spouse">Spouse / Partner</option>
+            <option value="children">Children</option>
+            <option value="parents">Parents</option>
+            <option value="business">Business Partner</option>
+            <option value="estate">Estate / Trust</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button type="button" class="btn-next" onclick="goStep(2)">Next: About You →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Personal info -->
+    <div class="step" id="step-2">
+      <div class="form-title">Tell us a little about yourself</div>
+      <div class="form-subtitle">This helps us find the most accurate rates for your age and health profile.</div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>First Name *</label>
+          <input type="text" name="first_name" placeholder="First name" required />
+        </div>
+        <div class="form-group">
+          <label>Last Name</label>
+          <input type="text" name="last_name" placeholder="Last name" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date of Birth / Age *</label>
+          <input type="number" name="age" placeholder="Your age" min="18" max="85" required />
+        </div>
+        <div class="form-group">
+          <label>Monthly Budget</label>
+          <select name="monthly_budget">
+            <option value="">Flexible</option>
+            <option value="25">Under $25/mo</option>
+            <option value="50">$25–$50/mo</option>
+            <option value="100">$50–$100/mo</option>
+            <option value="200">$100–$200/mo</option>
+            <option value="300">$200+/mo</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:14px">
+        <label>Overall Health</label>
+        <div class="health-opts">
+          <div class="health-opt selected" onclick="selectHealth('excellent', this)">😊<br/>Excellent</div>
+          <div class="health-opt" onclick="selectHealth('good', this)">🙂<br/>Good</div>
+          <div class="health-opt" onclick="selectHealth('fair', this)">😐<br/>Fair</div>
+          <div class="health-opt" onclick="selectHealth('poor', this)">😟<br/>Poor</div>
+        </div>
+        <input type="hidden" name="health_rating" value="excellent" id="health-input" />
+      </div>
+
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Tobacco / Nicotine Use?</div>
+          <div class="toggle-sub">Cigarettes, vaping, chew, cigars (last 12 months)</div>
+        </div>
+        <div class="toggle">
+          <button type="button" class="toggle-btn no selected" id="tobacco-no" onclick="setTobacco(0)">No</button>
+          <button type="button" class="toggle-btn yes" id="tobacco-yes" onclick="setTobacco(1)">Yes</button>
+        </div>
+      </div>
+      <input type="hidden" name="tobacco_use" value="0" id="tobacco-input" />
+
+      <div class="btn-row">
+        <button type="button" class="btn-back" onclick="goStep(1)">← Back</button>
+        <button type="button" class="btn-next" onclick="goStep(3)">Next: Contact Info →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Contact info -->
+    <div class="step" id="step-3">
+      <div class="form-title">Where should we send your quote?</div>
+      <div class="form-subtitle">Your information is 100% private and never sold to third parties.</div>
+
+      <div class="form-row single">
+        <div class="form-group">
+          <label>Phone Number *</label>
+          <input type="tel" name="phone" placeholder="+1 (555) 000-0000" required />
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" name="email" placeholder="your@email.com" />
+        </div>
+      </div>
+
+      <div style="background:#f0fdf4;border:1px solid #b8e8b8;border-radius:8px;padding:12px 14px;font-size:12px;color:#27ae60;margin-bottom:6px">
+        🔒 By submitting, you agree to be contacted by a licensed agent via phone/text about life insurance options. Reply STOP to opt out at any time.
+      </div>
+
+      <input type="hidden" name="source" value="landing-page" />
+
+      <div class="btn-row">
+        <button type="button" class="btn-back" onclick="goStep(2)">← Back</button>
+        <button type="submit" class="btn-submit">🛡️ Get My Free Quote!</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Success -->
+    <div class="step" id="step-4">
+      <div class="success-screen">
+        <div class="success-icon">🎉</div>
+        <div class="success-title">You're All Set, <span id="success-name">Friend</span>!</div>
+        <div class="success-sub">
+          Your quote request has been received. Our licensed agent will reach out within minutes to help you protect what matters most.
+        </div>
+        <div class="next-steps">
+          <div style="font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;margin-bottom:10px">What Happens Next</div>
+          <div class="next-step"><div class="step-num">1</div><div>You'll receive a welcome text within 60 seconds</div></div>
+          <div class="next-step"><div class="step-num">2</div><div>Your agent will call to review your options (no pressure!)</div></div>
+          <div class="next-step"><div class="step-num">3</div><div>Get personalized quotes from top-rated carriers</div></div>
+          <div class="next-step"><div class="step-num">4</div><div>Apply online — coverage can start same day</div></div>
+        </div>
+        <div style="margin-top:20px;font-size:13px;color:var(--text-light)">
+          AI Score: <strong id="success-score">—</strong>/100 · <span id="success-reason"></span>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- AI Chat Widget -->
+<button class="chat-toggle" onclick="toggleChat()" title="Chat with our AI Assistant">💬</button>
+<div class="chat-box" id="chat-box">
+  <div class="chat-header">
+    <span>🤖</span>
+    <div>
+      <div>AI Insurance Assistant</div>
+      <div style="font-size:11px;font-weight:400;opacity:0.75">Typically replies instantly</div>
+    </div>
+  </div>
+  <div class="chat-messages" id="chat-messages">
+    <div class="chat-msg agent">Hi! 👋 I'm the AI assistant for your insurance agent. I can help answer questions about coverage options. What's on your mind?</div>
+  </div>
+  <div class="chat-input-row">
+    <input class="chat-input" id="chat-input" type="text" placeholder="Type a question…" onkeydown="if(event.key==='Enter')sendChat()" />
+    <button class="chat-send" onclick="sendChat()">➤</button>
+  </div>
+</div>
+
+<script>
+  let currentStep = 1;
+  const chatHistory = [];
+  let leadData = {};
+
+  function goStep(n) {
+    // Validate required fields before advancing
+    if (n > currentStep) {
+      const step = document.getElementById(`step-${currentStep}`);
+      const required = step.querySelectorAll("[required]");
+      for (const el of required) {
+        if (!el.value.trim()) {
+          el.focus();
+          el.style.borderColor = "#e74c3c";
+          setTimeout(() => el.style.borderColor = "", 2000);
+          return;
+        }
+      }
+    }
+
+    document.getElementById(`step-${currentStep}`).classList.remove("active");
+    document.getElementById(`step-${n}`).classList.add("active");
+
+    // Update indicators
+    for (let i = 1; i <= 4; i++) {
+      const dot = document.getElementById(`dot-${i}`);
+      if (i < n) { dot.className = "step-dot done"; dot.textContent = "✓"; }
+      else if (i === n) { dot.className = "step-dot current"; dot.textContent = i < 4 ? i : "✓"; }
+      else { dot.className = "step-dot"; dot.textContent = i; }
+    }
+    for (let i = 1; i <= 3; i++) {
+      const line = document.getElementById(`line-${i}`);
+      line.className = "step-line" + (i < n ? " done" : "");
+    }
+
+    currentStep = n;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function selectProduct(val, el) {
+    document.querySelectorAll(".product-btn").forEach(b => b.classList.remove("selected"));
+    el.classList.add("selected");
+    document.getElementById("product-input").value = val;
+  }
+
+  function selectHealth(val, el) {
+    document.querySelectorAll(".health-opt").forEach(b => b.classList.remove("selected"));
+    el.classList.add("selected");
+    document.getElementById("health-input").value = val;
+  }
+
+  function setTobacco(val) {
+    document.getElementById("tobacco-input").value = val;
+    document.getElementById("tobacco-no").className  = "toggle-btn no"  + (val === 0 ? " selected" : "");
+    document.getElementById("tobacco-yes").className = "toggle-btn yes" + (val === 1 ? " selected" : "");
+  }
+
+  document.getElementById("capture-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const submitBtn = e.target.querySelector(".btn-submit");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Sending…";
+
+    const fd = new FormData(e.target);
+    const body = Object.fromEntries(fd.entries());
+
+    try {
+      const resp = await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await resp.json();
+
+      if (!data.ok) throw new Error(data.error || "Submission failed");
+
+      document.getElementById("success-name").textContent = body.first_name || "Friend";
+      document.getElementById("success-score").textContent = data.lead?.ai_score || "—";
+      document.getElementById("success-reason").textContent = data.lead?.score_reason || "";
+
+      goStep(4);
+      document.querySelector(".step-indicator").style.display = "none";
+    } catch (err) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "🛡️ Get My Free Quote!";
+      alert("Something went wrong: " + err.message);
+    }
+  });
+
+  // Chat widget
+  function toggleChat() {
+    const box = document.getElementById("chat-box");
+    box.classList.toggle("open");
+  }
+
+  async function sendChat() {
+    const input = document.getElementById("chat-input");
+    const msg = input.value.trim();
+    if (!msg) return;
+    input.value = "";
+
+    appendMsg(msg, "user");
+    chatHistory.push({ role: "user", content: msg });
+
+    const typingEl = appendMsg("…", "agent");
+
+    try {
+      const resp = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: chatHistory, leadData }),
+      });
+      const data = await resp.json();
+      typingEl.textContent = data.reply || "I'm here to help!";
+      chatHistory.push({ role: "assistant", content: data.reply });
+    } catch {
+      typingEl.textContent = "Sorry, I'm having trouble connecting. Please try again.";
+    }
+  }
+
+  function appendMsg(text, role) {
+    const el = document.createElement("div");
+    el.className = `chat-msg ${role}`;
+    el.textContent = text;
+    const container = document.getElementById("chat-messages");
+    container.appendChild(el);
+    container.scrollTop = container.scrollHeight;
+    return el;
+  }
+</script>
+</body>
+</html>

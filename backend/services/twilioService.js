@@ -1,61 +1,45 @@
-import { getAIResponse } from "./gptService.js";
-import { callScripts } from "./scripts.js";
+// backend/services/twilioService.js
 import twilio from "twilio";
 import dotenv from "dotenv";
-
-// ----------------------------------------------------
-//  Load environment variables
-// ----------------------------------------------------
+import { getCallScript } from "./gptService.js";
+import { callScripts } from "./scripts.js";
 dotenv.config();
 
-console.log("Twilio Service starting with:");
-console.log("SID:", process.env.TWILIO_ACCOUNT_SID ? "Loaded ✅" : "Missing ❌");
-console.log("TOKEN:", process.env.TWILIO_AUTH_TOKEN ? "Loaded ✅" : "Missing ❌");
-console.log("FROM:", process.env.TWILIO_PHONE_NUMBER ? "Loaded ✅" : "Missing ❌");
-
-const client = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
-
-// ----------------------------------------------------
-//  makeCall
-//  Places an outbound call that greets the contact
-//  by FIRST NAME ONLY—never speaks a phone number.
-// ----------------------------------------------------
-export async function makeCall(toNumber, callType, firstName = '') {
-  try {
-    // Clean the first name: letters, spaces, apostrophes, hyphens only
-    const safeName = (firstName || 'friend')
-      .replace(/[^a-zA-Z\s'-]/g, '')
-      .trim();
-
-    // Build a GPT prompt that politely greets by first name only
-    const prompt =
-      callScripts[callType] ||
-      `Introduce yourself as a sales agent in a polite and professional way and greet ${safeName} by first name only. Do NOT include any phone numbers.`;
-
-    console.log("Using prompt for callType:", callType);
-    console.log("Prompt text:", prompt);
-
-    // Ask GPT for the spoken script
-    const aiReplyRaw = await getAIResponse(prompt);
-    console.log("GPT returned reply:", aiReplyRaw);
-
-    // Extra safety: strip any digits that might sneak through
-    const aiReply = aiReplyRaw.replace(/\d+/g, '').trim();
-
-    // Place the call with Twilio
-    const call = await client.calls.create({
-      twiml: `<Response><Say voice="alice">${aiReply}</Say></Response>`,
-      to: toNumber,
-      from: process.env.TWILIO_PHONE_NUMBER,
-    });
-
-    console.log("Twilio API response:", call);
-    return call;
-  } catch (error) {
-    console.error("Twilio call error:", error);
-    throw error;
+let _client;
+function getClient() {
+  if (!_client) {
+    const sid   = process.env.TWILIO_ACCOUNT_SID;
+    const token = process.env.TWILIO_AUTH_TOKEN;
+    if (!sid || !token) throw new Error("Twilio credentials not configured. Set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN in .env");
+    _client = twilio(sid, token);
   }
+  return _client;
+}
+
+const FROM_NUMBER = process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_CALLER_ID;
+
+// Outbound AI call
+export async function makeCall(toNumber, scriptKey = "cold-call", vars = {}) {
+  const template = callScripts[scriptKey] || callScripts["cold-call"];
+  const spoken   = await getCallScript(template, vars);
+
+  const call = await getClient().calls.create({
+    to:    toNumber,
+    from:  FROM_NUMBER,
+    twiml: `<Response><Say voice="Polly.Joanna">${spoken}</Say></Response>`,
+  });
+
+  console.log(`📞 Call placed to ${toNumber} [${scriptKey}] — SID: ${call.sid}`);
+  return call.sid;
+}
+
+// Outbound SMS
+export async function sendSMS(toNumber, message) {
+  const msg = await getClient().messages.create({
+    to:   toNumber,
+    from: FROM_NUMBER,
+    body: message,
+  });
+  console.log(`💬 SMS sent to ${toNumber} — SID: ${msg.sid}`);
+  return msg.sid;
 }
