@@ -45,7 +45,10 @@ db.exec(`
     -- Agent notes
     notes         TEXT,
     last_contact  TEXT,
-    next_followup TEXT
+    next_followup TEXT,
+
+    -- Soft delete (#11)
+    deleted_at    TEXT DEFAULT NULL
   );
 `);
 
@@ -110,6 +113,12 @@ db.exec(`
     metadata   TEXT            -- JSON blob
   );
 `);
+
+// ── Migrations — add columns that didn't exist in earlier schema versions ──
+const leadCols = db.prepare("PRAGMA table_info(leads)").all().map(c => c.name);
+if (!leadCols.includes("deleted_at")) {
+  db.exec("ALTER TABLE leads ADD COLUMN deleted_at TEXT DEFAULT NULL");
+}
 
 // ── Seed default campaigns if empty ───────────────────────────────────────
 const campaignCount = db.prepare("SELECT COUNT(*) as c FROM campaigns").get().c;

@@ -1,20 +1,18 @@
 // backend/app.js — Life Insurance AI Sales Platform
 import express from "express";
 import bodyParser from "body-parser";
+import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
-import { v4 as uuidv4 } from "uuid";
 
 import leadsRouter     from "./routes/leads.js";
 import referralsRouter from "./routes/referrals.js";
 import campaignsRouter from "./routes/campaigns.js";
 
-import { makeCall, sendSMS }        from "./services/twilioService.js";
-import { qualifyLeadChat }          from "./services/gptService.js";
-import { triggerManualFollowUp }    from "./services/followUpEngine.js";
-import { logActivity }              from "./services/activityService.js";
-import db                           from "./db.js";
+import { makeCall }         from "./services/twilioService.js";
+import { qualifyLeadChat }  from "./services/gptService.js";
+import { recoverSequences } from "./services/followUpEngine.js";
 
 dotenv.config();
 
@@ -29,47 +27,47 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Serve frontend static files
 app.use(express.static(path.join(__dirname, "../frontend")));
 
+// ── Rate limiting ───────────────────────────────────────────────────────────
+// Public lead capture form: 10 submissions per IP per 15 minutes
+const leadCaptureLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: "Too many submissions. Please try again in 15 minutes." },
+});
+
+// Chat widget: 60 messages per IP per 10 minutes
+const chatLimit = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: "Chat rate limit reached. Please slow down." },
+});
+
+// Webhook endpoints: 100 per minute (trusted callers but still guarded)
+const webhookLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // ── API Routes ──────────────────────────────────────────────────────────────
+// Apply lead capture rate limit only to POST /api/leads (public form)
+app.post("/api/leads", leadCaptureLimit);
 app.use("/api/leads",     leadsRouter);
 app.use("/api/referrals", referralsRouter);
 app.use("/api/campaigns", campaignsRouter);
 
-// ── Manual trigger: send SMS to a lead ─────────────────────────────────────
-app.post("/api/leads/:id/sms", async (req, res) => {
-  try {
-    const lead = db.prepare("SELECT * FROM leads WHERE id = ?").get(req.params.id);
-    if (!lead) return res.status(404).json({ ok: false, error: "Lead not found" });
-    if (!lead.phone) return res.status(400).json({ ok: false, error: "Lead has no phone number" });
-
-    await triggerManualFollowUp(req.params.id, "sms");
-    res.json({ ok: true, message: "SMS sent" });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
-// ── Manual trigger: AI call to a lead ──────────────────────────────────────
-app.post("/api/leads/:id/call", async (req, res) => {
-  try {
-    const lead = db.prepare("SELECT * FROM leads WHERE id = ?").get(req.params.id);
-    if (!lead) return res.status(404).json({ ok: false, error: "Lead not found" });
-    if (!lead.phone) return res.status(400).json({ ok: false, error: "Lead has no phone number" });
-
-    const scriptKey = req.body.scriptKey || "hot-lead";
-    await makeCall(lead.phone, scriptKey, { firstName: lead.first_name });
-    logActivity(lead.id, "call", `Manual AI call placed (script: ${scriptKey})`, { scriptKey });
-
-    res.json({ ok: true, message: "Call placed" });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
 // ── Chat qualification widget endpoint ─────────────────────────────────────
-app.post("/api/chat", async (req, res) => {
+app.post("/api/chat", chatLimit, async (req, res) => {
   try {
     const { messages = [], leadData = {} } = req.body;
-    const reply = await qualifyLeadChat(messages, leadData);
+    // Trim to last 10 exchanges to cap token cost (#9)
+    const trimmed = messages.slice(-10);
+    const reply = await qualifyLeadChat(trimmed, leadData);
     res.json({ ok: true, reply });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
@@ -77,7 +75,7 @@ app.post("/api/chat", async (req, res) => {
 });
 
 // ── Brevo webhook (legacy support) ─────────────────────────────────────────
-app.post("/brevo/webhook", async (req, res) => {
+app.post("/brevo/webhook", webhookLimit, async (req, res) => {
   try {
     const body    = req.body || {};
     const contact = body.contact || {};
@@ -97,9 +95,9 @@ app.post("/brevo/webhook", async (req, res) => {
 });
 
 // ── Zapier webhook ─────────────────────────────────────────────────────────
-app.post("/zapier-call", async (req, res) => {
+app.post("/zapier-call", webhookLimit, async (req, res) => {
   try {
-    const { phoneNumber, name, email, readinessLevel, score, notes } = req.body || {};
+    const { phoneNumber, name, score } = req.body || {};
     if (!phoneNumber) return res.status(400).json({ ok: false, error: "Missing phone number" });
 
     const firstName = (name || "friend").split(" ")[0].trim();
@@ -127,4 +125,9 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📊 Dashboard: http://localhost:${PORT}`);
   console.log(`📋 Leads API: http://localhost:${PORT}/api/leads\n`);
+
+  // Recover any follow-up sequences lost during previous server restart (#2)
+  recoverSequences().catch(err =>
+    console.error("Follow-up recovery error:", err.message)
+  );
 });

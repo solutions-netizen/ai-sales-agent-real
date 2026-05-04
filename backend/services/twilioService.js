@@ -18,10 +18,17 @@ function getClient() {
 
 const FROM_NUMBER = process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_CALLER_ID;
 
+// Sanitize text before embedding in TwiML XML to prevent injection (#12)
+function escapeTwiml(text) {
+  return text.replace(/[<>&"']/g, c => (
+    { "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" }[c]
+  ));
+}
+
 // Outbound AI call
 export async function makeCall(toNumber, scriptKey = "cold-call", vars = {}) {
   const template = callScripts[scriptKey] || callScripts["cold-call"];
-  const spoken   = await getCallScript(template, vars);
+  const spoken   = escapeTwiml(await getCallScript(template, vars));
 
   const call = await getClient().calls.create({
     to:    toNumber,

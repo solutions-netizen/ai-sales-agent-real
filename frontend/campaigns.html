@@ -241,9 +241,15 @@
   document.getElementById("agent-avatar").textContent =
     (localStorage.getItem("agentName") || "A")[0];
 
+  // Store campaigns in memory so openEdit can look up data safely
+  // instead of round-tripping through escaped inline JS attributes (#3)
+  let campaignStore = {};
+
   async function loadCampaigns() {
     try {
       const { campaigns } = await api("GET", "/campaigns");
+      campaignStore = Object.fromEntries(campaigns.map(c => [c.id, c]));
+
       document.getElementById("campaigns-list").innerHTML = campaigns.map(c => `
         <div class="campaign-card">
           <div class="campaign-icon">${CHANNEL_ICONS[c.type] || "📣"}</div>
@@ -257,11 +263,15 @@
             <div class="campaign-msg">${c.message_template.slice(0, 140)}…</div>
           </div>
           <div class="campaign-actions">
-            <label class="toggle-switch" title="${c.active ? 'Active' : 'Paused'}">
-              <input type="checkbox" ${c.active ? "checked" : ""} onchange="toggleCampaign('${c.id}', this.checked)" />
+            <label class="toggle-switch" title="${c.active ? "Active" : "Paused"}">
+              <input type="checkbox" ${c.active ? "checked" : ""}
+                data-id="${c.id}"
+                onchange="toggleCampaign(this.dataset.id, this.checked)" />
               <div class="toggle-slider"></div>
             </label>
-            <button class="btn btn-outline btn-sm" onclick="openEdit('${c.id}','${escHtml(c.name)}',\`${escJs(c.message_template)}\`)">✏️ Edit</button>
+            <button class="btn btn-outline btn-sm"
+              data-id="${c.id}"
+              onclick="openEdit(this.dataset.id)">✏️ Edit</button>
             <span style="font-size:10px;color:var(--text-light)">${c.sent_count} sent</span>
           </div>
         </div>
@@ -278,11 +288,14 @@
     } catch (err) { toast(err.message, "error"); }
   }
 
-  function openEdit(id, name, template) {
-    document.getElementById("edit-campaign-id").value = id;
-    document.getElementById("edit-name").value = name;
-    document.getElementById("edit-template").value = template;
-    document.getElementById("edit-modal-title").textContent = `Edit: ${name}`;
+  // Reads campaign data from in-memory store — no inline JS escaping needed (#3)
+  function openEdit(id) {
+    const c = campaignStore[id];
+    if (!c) return;
+    document.getElementById("edit-campaign-id").value   = c.id;
+    document.getElementById("edit-name").value          = c.name;
+    document.getElementById("edit-template").value      = c.message_template;
+    document.getElementById("edit-modal-title").textContent = `Edit: ${c.name}`;
     document.getElementById("edit-modal").classList.remove("hidden");
   }
 
@@ -291,8 +304,8 @@
   }
 
   async function saveEdit() {
-    const id = document.getElementById("edit-campaign-id").value;
-    const name = document.getElementById("edit-name").value;
+    const id       = document.getElementById("edit-campaign-id").value;
+    const name     = document.getElementById("edit-name").value;
     const template = document.getElementById("edit-template").value;
     try {
       await api("PATCH", `/campaigns/${id}`, { name, message_template: template });
@@ -301,9 +314,6 @@
       loadCampaigns();
     } catch (err) { toast(err.message, "error"); }
   }
-
-  function escHtml(s) { return s.replace(/'/g,"&#39;").replace(/"/g,"&quot;"); }
-  function escJs(s)   { return s.replace(/`/g,"\\`").replace(/\${/g,"\\${"); }
 
   loadCampaigns();
 </script>
